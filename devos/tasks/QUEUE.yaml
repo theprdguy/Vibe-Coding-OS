@@ -1,0 +1,79 @@
+sprint_goal: "Bootstrap a reusable multi-LLM vibe-coding OS (SSOT + Make + A-Mode)"
+
+defaults:
+  verify:
+    - "make pr-check"
+
+tickets:
+  - id: T-000
+    status: todo
+    owner: CLAUDE
+    goal: "Bootstrap repo skeleton + SSOT files + make interface"
+    dod:
+      - "All SSOT files exist"
+      - "make kickoff / make triage / make pr-check work"
+    files:
+      - "Makefile"
+      - "AI.md"
+      - "CONTEXT.md"
+      - "PROJECT_STATE.md"
+      - "TASKS.md"
+      - "docs/**"
+      - "tasks/**"
+      - "questions/**"
+      - ".claude/**"
+      - ".codex/**"
+      - ".gemini/**"
+    verify:
+      - "make help"
+      - "make kickoff"
+      - "make pr-check"
+    contract_impact: both
+    deps: []
+
+  - id: T-001
+    status: todo
+    owner: CLAUDE
+    goal: "Run session-start triage routine (A-Mode) and refine rules"
+    dod:
+      - "At least 2 open questions exist with Options/Default"
+      - "A-Mode routine documented in CONTEXT.md"
+    files:
+      - "CONTEXT.md"
+      - "questions/QUEUE.md"
+      - "PROJECT_STATE.md"
+    verify:
+      - "make triage"
+      - "make status"
+    contract_impact: none
+    deps: ["T-000"]
+
+  - id: T-010
+    status: parked
+    owner: GEMINI
+    goal: "(When project chosen) Create UI skeleton with global states + mock-first"
+    dod:
+      - "loading/empty/error/success implemented"
+      - "mock data matches API contract examples"
+    files:
+      - "apps/web/**"
+      - "docs/UI_CONTRACT.md"
+    verify:
+      - "make pr-check"
+    contract_impact: ui
+    deps: ["T-000"]
+
+  - id: T-020
+    status: parked
+    owner: CODEX
+    goal: "(When project chosen) Create API skeleton matching API contract + tests"
+    dod:
+      - "endpoints exist per API contract"
+      - "error format matches contract"
+    files:
+      - "apps/api/**"
+      - "docs/API_CONTRACT.md"
+    verify:
+      - "make pr-check"
+    contract_impact: api
+    deps: ["T-000"]
