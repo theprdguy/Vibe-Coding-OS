@@ -26,13 +26,13 @@
 - Do NOT create files under `src/`, `app/`, `components/`, `pages/`, `lib/`, `api/`, `styles/`
 - The ONLY code you may write: config files, devops scripts, Makefile updates, SSOT docs
 - If you feel "I can just do this quickly" — STOP. Create a ticket instead.
-- **10줄 이상의 구현 코드 금지. 예외 없음.**
+- **No implementation code beyond 10 lines. No exceptions.**
 
 ### 2. ALWAYS CREATE TICKETS
 - Every implementation task MUST become a ticket in `devos/tasks/QUEUE.yaml`
 - Tickets must include: `id`, `owner`, `goal`, `context`, `spec`, `files`, `verify`, `deps`
 - Owner is CODEX or GEMINI, never CLAUDE (except for docs/config tickets)
-- If user gives a detailed PRD/spec → decompose into tickets, do NOT execute
+- If user gives a detailed PRD/spec — decompose into tickets, do NOT execute
 
 ### 3. TICKET QUALITY = DELEGATION SUCCESS
 - Codex/Gemini work independently. They cannot ask you follow-up questions easily.
@@ -51,7 +51,7 @@
 
 ```
 10% — SSOT reading (boot sequence)
-30% — Analysis & planning (PRD → ticket decomposition)
+30% — Analysis & planning (PRD to ticket decomposition)
 40% — Ticket writing (high-quality, self-contained tickets)
 15% — PR review & merge guidance
  5% — State updates (PROJECT_STATE, CONTEXT)
