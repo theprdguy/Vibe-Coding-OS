@@ -4,29 +4,53 @@ defaults:
   verify:
     - "make pr-check"
 
+# ─── Ticket Template (for reference) ───
+# - id: T-XXX
+#   status: todo|doing|blocked|done|parked
+#   owner: CLAUDE|CODEX|GEMINI
+#   goal: "무엇을 만들 것인가 (1문장)"
+#   context: |
+#     왜 필요한가, 현재 상태 (2-3문장)
+#     빌더가 독립적으로 작업할 수 있을 만큼의 배경 정보
+#   spec: |
+#     구체적 요구사항:
+#     - input/output/behavior
+#     - UI 상태 (loading/empty/error/success)
+#     - API endpoint/payload 형식
+#     - 참조할 계약 문서 섹션
+#   dod:
+#     - "완료 조건 1"
+#     - "완료 조건 2"
+#   files:
+#     - "수정할 파일/디렉토리 (소유권 범위)"
+#   verify:
+#     - "make pr-check"
+#   contract_impact: none|api|ui|both
+#   deps: ["T-XXX"]
+# ────────────────────────────────────────
+
 tickets:
   - id: T-000
     status: todo
     owner: CLAUDE
     goal: "Bootstrap repo skeleton + SSOT files + make interface"
+    context: |
+      프로젝트 시작 전 기본 OS 구조를 세팅하는 초기 작업.
+      모든 SSOT 파일과 make 인터페이스가 동작해야 빌더 투입 가능.
+    spec: |
+      - devos/ 하위 모든 SSOT 파일 생성 (AI.md, CONTEXT.md, PROJECT_STATE.md 등)
+      - Makefile에 kickoff/triage/pr-check 타겟 동작 확인
+      - .claude/.codex/.gemini 역할 파일 배치
     dod:
       - "All SSOT files exist"
-      - "make kickoff / make triage / make pr-check work"
+      - "make start / make triage / make pr-check work"
     files:
+      - "devos/**"
       - "Makefile"
-      - "AI.md"
-      - "CONTEXT.md"
-      - "PROJECT_STATE.md"
-      - "TASKS.md"
-      - "docs/**"
-      - "tasks/**"
-      - "questions/**"
       - ".claude/**"
-      - ".codex/**"
-      - ".gemini/**"
     verify:
       - "make help"
-      - "make kickoff"
+      - "make start"
       - "make pr-check"
     contract_impact: both
     deps: []
@@ -35,13 +59,20 @@ tickets:
     status: todo
     owner: CLAUDE
     goal: "Run session-start triage routine (A-Mode) and refine rules"
+    context: |
+      A-Mode 트리아지 루틴을 실제로 실행하여 질문 큐 처리 프로세스를 검증.
+      최소 2개의 open 질문이 있어야 테스트 가능.
+    spec: |
+      - questions/QUEUE.md에 open 질문 2개 이상 작성
+      - Claude session-start 프롬프트로 트리아지 실행
+      - 결과를 CONTEXT.md에 기록
     dod:
       - "At least 2 open questions exist with Options/Default"
       - "A-Mode routine documented in CONTEXT.md"
     files:
-      - "CONTEXT.md"
-      - "questions/QUEUE.md"
-      - "PROJECT_STATE.md"
+      - "devos/CONTEXT.md"
+      - "devos/questions/QUEUE.md"
+      - "devos/PROJECT_STATE.md"
     verify:
       - "make triage"
       - "make status"
@@ -52,12 +83,20 @@ tickets:
     status: parked
     owner: GEMINI
     goal: "(When project chosen) Create UI skeleton with global states + mock-first"
+    context: |
+      프로젝트가 결정되면 UI 스켈레톤을 생성.
+      UI_CONTRACT에 정의된 상태(loading/empty/error/success)를 모두 구현.
+      API가 없어도 mock 데이터로 선행 개발.
+    spec: |
+      - UI_CONTRACT.md의 화면별 상태 정의에 따라 컴포넌트 생성
+      - API_CONTRACT.md의 예시 JSON으로 mock 데이터 구성
+      - 글로벌 레이아웃 + 라우팅 기본 구조
     dod:
       - "loading/empty/error/success implemented"
       - "mock data matches API contract examples"
     files:
       - "apps/web/**"
-      - "docs/UI_CONTRACT.md"
+      - "devos/docs/UI_CONTRACT.md"
     verify:
       - "make pr-check"
     contract_impact: ui
@@ -67,12 +106,21 @@ tickets:
     status: parked
     owner: CODEX
     goal: "(When project chosen) Create API skeleton matching API contract + tests"
+    context: |
+      프로젝트가 결정되면 API 스켈레톤을 생성.
+      API_CONTRACT에 정의된 엔드포인트를 모두 구현.
+      에러 포맷도 계약에 맞춰야 함.
+    spec: |
+      - API_CONTRACT.md의 엔드포인트 목록에 따라 라우트 생성
+      - request/response 형식은 계약 예시 JSON과 일치
+      - 에러 포맷 통일 (계약 문서 참조)
+      - 각 엔드포인트별 기본 테스트 작성
     dod:
       - "endpoints exist per API contract"
       - "error format matches contract"
     files:
       - "apps/api/**"
-      - "docs/API_CONTRACT.md"
+      - "devos/docs/API_CONTRACT.md"
     verify:
       - "make pr-check"
     contract_impact: api

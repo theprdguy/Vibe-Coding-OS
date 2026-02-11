@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hook": ".claude/hooks/guard-no-impl.sh"
+      }
+    ]
+  }
+}

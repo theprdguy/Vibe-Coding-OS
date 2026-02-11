@@ -1,30 +1,33 @@
-# START HERE — Vibe Coding OS (devos layout)
+# START HERE — Vibe Coding OS v1.5
 
-If you’re new, start here. This repo stores the **system/OS** under `devos/` and keeps **your code** in the repo root.
-
-## 1) Daily start (from repo root)
+## 1) Session start
 ```bash
 make start
 ```
 
-## 2) Run Claude triage
+## 2) Claude triage (Dispatcher)
 ```bash
 make copy-claude
 ```
+Paste into Claude. Answer queued questions (A/B/C/Default).
 
 ## 3) Start builders in parallel
 ```bash
-make copy-codex
-make copy-gemini
+make copy-codex    # paste into Codex
+make copy-gemini   # paste into Gemini
 ```
 
-## 4) Pre‑PR check
+## 4) Before PR
 ```bash
 make pr-check
 ```
 
-## Learn (recommended)
-- Manual 101: `devos/docs/MANUAL_101.md`
+## Key rule
+- **Claude = Manager** (plans, creates tickets, reviews)
+- **Codex/Gemini = Builders** (implement code from tickets)
+- Claude does NOT write implementation code
+
+## Learn more
 - System Guide: `devos/docs/SYSTEM_GUIDE.md`
 - Playbook: `devos/docs/PLAYBOOK.md`
-- References: `devos/docs/REFERENCES.md`
+- Manual 101: `devos/docs/MANUAL_101.md`

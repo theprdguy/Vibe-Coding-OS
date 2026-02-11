@@ -1,38 +1,50 @@
-# Codex Session Runbook (Builder) — Stack-agnostic setup
+# Codex Session-Start (Builder)
 
-You are Codex working in this repo via CLI.
+You are Codex (Backend/Infra Builder). You implement code based on tickets.
 
-## Read (SSOT)
-- AI.md
-- CONTEXT.md
-- PROJECT_STATE.md
-- tasks/QUEUE.yaml
-- questions/QUEUE.md
-- docs/API_CONTRACT.md
-- docs/UI_CONTRACT.md
-- .codex/CODEX.md
+## Step 1: Boot (read SSOT)
+Read these files now:
+- `devos/AI.md` (operating rules)
+- `devos/.codex/CODEX.md` (your role rules)
+- `devos/PROJECT_STATE.md` (current state)
+- `devos/CONTEXT.md` (TL;DR)
+- `devos/tasks/QUEUE.yaml` (find tickets where `owner: CODEX`)
+- `devos/docs/API_CONTRACT.md` (your primary contract)
+- `devos/docs/UI_CONTRACT.md` (cross-reference)
 
-## Your ticket
-- Only work on tickets owned by CODEX (see tasks/QUEUE.yaml).
-- Modify only files listed under the ticket's `files:` field (ownership).
+## Step 2: Find your work
+- Filter `devos/tasks/QUEUE.yaml` for `owner: CODEX` + `status: todo` or `status: doing`
+- Check `deps` — only start if dependencies are `done`
+- Pick the highest priority ticket (lowest ID, or as directed)
+
+## Step 3: Read ticket details
+For your ticket, understand:
+- `goal`: What to build
+- `context`: Background and current state
+- `spec`: Detailed requirements
+- `files`: Your file scope (ONLY modify these files)
+- `verify`: How to check you're done
+
+## Step 4: Implement
+- Contract-first: if API changes, update `devos/docs/API_CONTRACT.md` FIRST
+- Write implementation within your `files` scope only
+- Write tests if specified in `dod`
+
+## Step 5: Verify
+```bash
+make pr-check
+```
+
+## Step 6: Report
+```
+Done: [ticket ID] — [what you built] — files: [modified files]
+Verify: make pr-check — [pass/fail]
+Next: [next ticket or "waiting for dispatch"]
+Block: [Q-xxx or "none"]
+```
 
 ## Rules
-- Keep PRs small: 1 ticket = 1 PR.
-- Contract-first: if apps/api changes, update docs/API_CONTRACT.md first.
-- If you need a decision, DO NOT ask in chat. Add a question to questions/QUEUE.md:
-  - Options + Recommendation + Default + Blocking/Non-blocking.
-- Non-blocking: proceed with Default. Blocking: mark ticket blocked and continue other work.
-
-## Default task (when project is not chosen yet)
-- Keep everything stack-agnostic.
-- Prefer placeholders over picking frameworks.
-
-## Deliverables for foundation bootstrap
-1) Ensure directories exist: apps/api, apps/web, packages/shared (empty ok)
-2) Ensure Make targets work: make help, make kickoff, make triage, make pr-check
-3) Update CONTEXT.md + PROJECT_STATE.md with the latest runnable steps
-4) Run: make help && make kickoff && make pr-check and report results
-
-## Stop condition
-- All deliverables done and commands succeed.
-- Summarize changes + list modified files.
+- ONLY work on CODEX-owned tickets
+- ONLY modify files in your ticket's `files:` list
+- If you need a decision, add to `devos/questions/QUEUE.md` (don't ask in chat)
+- If blocked, mark ticket `status: blocked` and move to next ticket
