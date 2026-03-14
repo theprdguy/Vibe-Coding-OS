@@ -6,13 +6,14 @@ DEVOS := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 .PHONY: help start status queue questions triage pr-check contract-check \
         copy-claude copy-codex copy-gemini show-claude show-codex show-gemini \
-        setup dev lint format test typecheck e2e clean run new-ticket new-question
+        setup dev lint format test typecheck e2e clean run new-ticket new-question \
+        agents logs log-review log-archive worktree-create worktree-list worktree-clean
 
 # ─── Core (daily use) ─────────────────────────────────────
 
 help: ## Show available commands
 	@echo ""
-	@echo "  Vibe Coding OS v1.5"
+	@echo "  Vibe Coding OS v2.0"
 	@echo "  ────────────────────────────"
 	@echo ""
 	@echo "  Daily:"
@@ -27,6 +28,12 @@ help: ## Show available commands
 	@echo "  Build (wire once stack chosen):"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*Build' $(MAKEFILE_LIST) | awk 'BEGIN {FS=":.*?## "}; {printf "    \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 	@echo ""
+	@echo "  Agents & Logs:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*Agent' $(MAKEFILE_LIST) | awk 'BEGIN {FS=":.*?## "}; {printf "    \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*Log' $(MAKEFILE_LIST) | awk 'BEGIN {FS=":.*?## "}; {printf "    \033[36m%-18s\033[0m %s\n", $$1, $$2}'
+	@echo ""
+	@echo "  Worktree:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*Worktree' $(MAKEFILE_LIST) | awk 'BEGIN {FS=":.*?## "}; {printf "    \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 start: ## [Daily] Session start: status + queue + questions + next steps
 	@echo ""
@@ -39,9 +46,12 @@ start: ## [Daily] Session start: status + queue + questions + next steps
 	@$(MAKE) --no-print-directory triage
 	@echo ""
 	@echo "── Next Steps ──────────────────────────"
-	@echo "  1. Claude triage:  make copy-claude  (or make show-claude)"
-	@echo "  2. Start builders: make copy-codex   / make copy-gemini"
-	@echo "  3. Before PR:      make pr-check"
+	@echo "  1. Start Claude Code in repo (auto-reads .claude/CLAUDE.md)"
+	@echo "  2. Start Codex CLI in repo   (auto-reads AGENTS.md)"
+	@echo "  3. Start Gemini CLI in repo  (auto-reads GEMINI.md)"
+	@echo "  4. Before PR: make pr-check"
+	@echo ""
+	@echo "  Review builder logs: make log-review"
 	@echo ""
 
 status: ## [Daily] Git status + SSOT file check
@@ -81,17 +91,20 @@ triage: ## [Daily] Show OPEN questions only
 
 # ─── Prompt Delivery ──────────────────────────────────────
 
-copy-claude: ## [Prompt] Copy Claude triage prompt to clipboard
+copy-claude: ## [Prompt] (deprecated) Copy Claude triage prompt to clipboard
+	@echo "⚠ Deprecated: Claude auto-reads .claude/CLAUDE.md. Use only as fallback."
 	@cat prompts/claude/session-start.md | pbcopy 2>/dev/null && \
 		echo "✓ Claude prompt copied to clipboard" || \
 		$(MAKE) --no-print-directory show-claude
 
-copy-codex: ## [Prompt] Copy Codex builder prompt to clipboard
+copy-codex: ## [Prompt] (deprecated) Copy Codex builder prompt to clipboard
+	@echo "⚠ Deprecated: Codex auto-reads AGENTS.md. Use only as fallback."
 	@cat prompts/codex/session-start.md | pbcopy 2>/dev/null && \
 		echo "✓ Codex prompt copied to clipboard" || \
 		$(MAKE) --no-print-directory show-codex
 
-copy-gemini: ## [Prompt] Copy Gemini builder prompt to clipboard
+copy-gemini: ## [Prompt] (deprecated) Copy Gemini builder prompt to clipboard
+	@echo "⚠ Deprecated: Gemini auto-reads GEMINI.md. Use only as fallback."
 	@cat prompts/gemini/session-start.md | pbcopy 2>/dev/null && \
 		echo "✓ Gemini prompt copied to clipboard" || \
 		$(MAKE) --no-print-directory show-gemini
@@ -159,6 +172,70 @@ e2e: ## [Build] E2E tests (placeholder). CMD="..."
 clean: ## [Build] Clean artifacts (placeholder)
 	@echo "TODO: clean caches/build outputs"
 
+# ─── Agents & Logs ───────────────────────────────────────
+
+agents: ## [Agent] Show registered agents and status
+	@echo "── Agent Registry ──"
+	@if [ -f agents/registry.yaml ]; then \
+		grep -E '^\s+- id:|^\s+role:|^\s+status:' agents/registry.yaml 2>/dev/null | \
+		paste - - - | \
+		awk '{gsub(/\s+- id: /,"  "); gsub(/\s+role: /," ("); gsub(/\s+status: /,") — "); print}' || true; \
+	else \
+		echo "  (missing) agents/registry.yaml"; \
+	fi
+	@echo ""
+
+logs: ## [Log] Show recent session logs
+	@echo "── Recent Session Logs ──"
+	@if [ -d logs ]; then \
+		FOUND=$$(ls -t logs/*.md 2>/dev/null | grep -v README.md | head -10); \
+		if [ -n "$$FOUND" ]; then \
+			echo "$$FOUND" | while read f; do echo "  $$(basename $$f)"; done; \
+		else \
+			echo "  (no logs yet)"; \
+		fi; \
+	else \
+		echo "  (missing) logs/ directory"; \
+	fi
+	@echo ""
+
+log-review: ## [Log] Show latest log per agent for review
+	@echo "── Latest Logs (for Dispatcher review) ──"
+	@for agent in codex gemini claude; do \
+		LATEST=$$(ls -t logs/*-$$agent-*.md 2>/dev/null | head -1); \
+		if [ -n "$$LATEST" ]; then \
+			echo ""; \
+			echo "── $$agent ──"; \
+			cat "$$LATEST"; \
+		fi; \
+	done
+	@echo ""
+
+log-archive: ## [Log] Archive logs older than 7 days
+	@mkdir -p logs/archive
+	@find logs -maxdepth 1 -name '*.md' ! -name 'README.md' -mtime +7 -exec mv {} logs/archive/ \;
+	@echo "✓ Archived logs older than 7 days to logs/archive/"
+
+# ─── Worktree ────────────────────────────────────────────
+
+TICKET ?= ""
+
+worktree-create: ## [Worktree] Create isolated worktree for a ticket. TICKET=T-123
+	@if [ -z "$(TICKET)" ]; then echo "Usage: make worktree-create TICKET=T-123"; exit 1; fi
+	@git worktree add worktrees/$(TICKET) -b feat/$(TICKET) 2>/dev/null && \
+		echo "✓ Worktree created: worktrees/$(TICKET) on branch feat/$(TICKET)" || \
+		echo "✗ Failed to create worktree (branch may already exist)"
+
+worktree-list: ## [Worktree] List active worktrees
+	@echo "── Active Worktrees ──"
+	@git worktree list
+	@echo ""
+
+worktree-clean: ## [Worktree] Remove merged worktrees
+	@echo "Cleaning merged worktrees..."
+	@git worktree prune
+	@echo "✓ Pruned stale worktrees"
+
 # ─── Utilities ────────────────────────────────────────────
 
 run: ## Run any command via CMD="..."
@@ -173,9 +250,9 @@ new-ticket: ## Create a new ticket template
 	@echo '    owner: CODEX|GEMINI'
 	@echo '    goal: "What to build (1 sentence)"'
 	@echo '    context: |'
-	@echo '      Why it is needed, current state (2-3 sentences)'
-	@echo '    spec: |'
-	@echo '      Detailed requirements'
+	@echo '      Why needed + technical context (research results)'
+	@echo '    constraints: |'
+	@echo '      Technical constraints (versions, compatibility)'
 	@echo '    dod:'
 	@echo '      - "Acceptance criteria"'
 	@echo '    files:'

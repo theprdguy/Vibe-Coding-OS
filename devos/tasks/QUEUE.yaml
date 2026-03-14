@@ -4,30 +4,28 @@ defaults:
   verify:
     - "make pr-check"
 
-# ─── Ticket Template (for reference) ───
+# ─── Ticket Template v2.0 (WHAT + CONTEXT) ───
+# Claude writes WHAT and CONTEXT. Builders decide HOW.
+#
 # - id: T-XXX
 #   status: todo|doing|blocked|done|parked
 #   owner: CLAUDE|CODEX|GEMINI
-#   goal: "What to build (1 sentence)"
+#   goal: "What to build — behavioral requirement (1 sentence)"
 #   context: |
-#     Why it's needed, current state (2-3 sentences)
-#     Enough background for builders to work independently
-#   spec: |
-#     Detailed requirements:
-#     - input/output/behavior
-#     - UI states (loading/empty/error/success)
-#     - API endpoint/payload format
-#     - Contract doc sections to reference
+#     Why it's needed + technical context from Claude's research
+#     (MCP/context7 findings, latest API changes, version info)
+#   constraints: |
+#     Technical constraints (versions, compatibility, dependencies)
 #   dod:
-#     - "Acceptance criteria 1"
-#     - "Acceptance criteria 2"
+#     - "Acceptance criteria (behavior-based)"
 #   files:
 #     - "Files/directories to modify (ownership scope)"
+#   skills_hint: []  # Optional: [TDD, systematic-debugging, verification-before-completion]
 #   verify:
 #     - "make pr-check"
 #   contract_impact: none|api|ui|both
 #   deps: ["T-XXX"]
-# ────────────────────────────────────────
+# ──────────────────────────────────────────────
 
 tickets:
   - id: T-000

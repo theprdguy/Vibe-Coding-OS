@@ -1,0 +1,57 @@
+# Agent Registry (v2.0)
+# Central registry of all agents in the multi-LLM OS.
+# Read by Claude (Dispatcher) at boot to understand the team.
+
+version: "2.0"
+
+agents:
+  - id: claude-dispatcher
+    role: dispatcher
+    instruction_file: .claude/CLAUDE.md
+    capabilities: [planning, triage, review, ticket-creation, research]
+    can_modify:
+      - "devos/**"
+      - "Makefile"
+      - ".claude/**"
+      - "AGENTS.md"
+      - "GEMINI.md"
+    status: active
+    notes: "Manager + Researcher. Uses MCP/context7 for tech research."
+
+  - id: codex-builder
+    role: builder
+    instruction_file: AGENTS.md
+    capabilities: [backend, infra, testing, refactoring]
+    can_modify:
+      - "apps/api/**"
+      - "packages/**"
+      - "tests/**"
+      - "devos/docs/API_CONTRACT.md"
+      - "devos/logs/*-codex-*"
+      - "devos/questions/QUEUE.md"
+    status: active
+    notes: "Backend/Infra builder. Reads AGENTS.md natively."
+
+  - id: gemini-builder
+    role: builder
+    instruction_file: GEMINI.md
+    capabilities: [frontend, ui, qa, design]
+    can_modify:
+      - "apps/web/**"
+      - "styles/**"
+      - "devos/docs/UI_CONTRACT.md"
+      - "devos/logs/*-gemini-*"
+      - "devos/questions/QUEUE.md"
+    status: active
+    notes: "Frontend/UI + QA builder. Reads GEMINI.md natively."
+
+  - id: claude-secondary
+    role: TBD
+    instruction_file: .claude/CLAUDE-SECONDARY.md
+    capabilities: []
+    can_modify: []
+    status: inactive
+    notes: |
+      Second Claude instance. Role undecided.
+      Options: Reviewer / QA-TDD Agent / Second Dispatcher
+      Activate when role is determined.

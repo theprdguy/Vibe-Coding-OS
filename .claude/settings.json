@@ -2,8 +2,22 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Write|Edit",
-        "hook": ".claude/hooks/guard-no-impl.sh"
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-no-impl.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-no-impl.sh"
+          }
+        ]
       }
     ]
   }
