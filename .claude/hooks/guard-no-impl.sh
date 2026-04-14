@@ -6,7 +6,12 @@
 
 INPUT=$(cat)
 
-FILE_PATH=$(echo "$INPUT" | grep -oE '"file_path"\s*:\s*"[^"]*"' | head -1 | sed 's/.*"file_path"\s*:\s*"//;s/"$//')
+# Claude 2 has its own scope guard (.claude-b/hooks/guard-scope.sh) — skip this guard
+if [ "$CLAUDE_CONFIG_DIR" = ".claude-b" ]; then
+  exit 0
+fi
+
+FILE_PATH=$(echo "$INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('file_path',''))" 2>/dev/null)
 
 if [ -z "$FILE_PATH" ]; then
   exit 0
