@@ -11,15 +11,48 @@ import yaml
 
 # ── QUEUE.yaml ─────────────────────────────────────────────────────────────
 
-def read_queue(queue_path: Path) -> dict:
-    """Read QUEUE.yaml and return parsed content."""
+DEFAULT_QUEUE_PATH = Path("devos/tasks/QUEUE.yaml")
+VALID_STATUSES = {"todo", "doing", "done", "blocked", "parked"}
+VALID_TDD_VALUES = ("required", "skip", "self-evident")
+
+
+class ValidationError(ValueError):
+    """Raised when SSOT content violates queue schema expectations."""
+
+
+def _validate_ticket(ticket: dict) -> dict:
+    """Return a normalized ticket with compatibility fallbacks applied."""
+    normalized = dict(ticket)
+    owner = normalized.get("owner")
+    normalized["tdd"] = normalized.get("tdd", "skip")
+    normalized["test_owner"] = normalized.get("test_owner", owner)
+    normalized["impl_owner"] = normalized.get("impl_owner", owner)
+
+    tdd = normalized["tdd"]
+    if tdd not in VALID_TDD_VALUES:
+        raise ValidationError(f"tdd must be one of [{', '.join(VALID_TDD_VALUES)}]")
+
+    return normalized
+
+
+def _validate_queue_data(data: dict) -> dict:
+    """Return normalized queue data after validating ticket schema."""
+    normalized = dict(data)
+    tickets = normalized.get("tickets", [])
+    normalized["tickets"] = [_validate_ticket(ticket) for ticket in tickets]
+    return normalized
+
+
+def read_queue(queue_path: Path | None = None) -> dict:
+    """Read QUEUE.yaml, validate schema, and return normalized content."""
+    queue_path = queue_path or DEFAULT_QUEUE_PATH
     if not queue_path.exists():
         return {"version": "3.0", "tickets": []}
     with open(queue_path) as f:
         data = yaml.safe_load(f) or {}
     if "tickets" not in data:
         data["tickets"] = []
-    return data
+    return _validate_queue_data(data)
 
 
 def write_queue(queue_path: Path, data: dict) -> None:
@@ -66,10 +99,6 @@ def update_ticket_fields(queue_path: Path, ticket_id: str, updates: dict) -> boo
         return True
     return False
 
-
-VALID_STATUSES = {"todo", "doing", "done", "blocked", "parked"}
-
-
 def append_tickets(queue_path: Path, new_tickets: list[dict]) -> None:
     """Append new tickets to QUEUE.yaml."""
     for ticket in new_tickets:
@@ -103,8 +132,14 @@ def format_queue_summary(queue_path: Path) -> str:
         lines.append(f"\n[{status.upper()}]")
         for t in by_status[status]:
             owner = t.get("owner", "?")
+            tdd = t.get("tdd", "skip")
+            test_owner = t.get("test_owner", owner)
+            impl_owner = t.get("impl_owner", owner)
             goal_preview = str(t.get("goal", ""))[:60].strip()
-            lines.append(f"  {t['id']} [{owner}] {goal_preview}")
+            lines.append(
+                f"  {t['id']} [{owner}] tdd={tdd} test_owner={test_owner} "
+                f"impl_owner={impl_owner} {goal_preview}"
+            )
 
     return "\n".join(lines)
 

@@ -46,7 +46,7 @@ load_env_file() {
   fi
 }
 
-section "1/4 Check required CLI tools"
+section "1/4 CLI 도구 확인"
 
 check_required() {
   local tool="$1"
@@ -74,9 +74,30 @@ check_required "pip3" "https://pip.pypa.io/en/stable/installation/"
 check_required "git" "https://git-scm.com/downloads"
 check_optional "claude" "https://docs.anthropic.com/en/docs/claude-code/overview"
 check_optional "codex" "https://platform.openai.com/docs/codex/overview"
+check_optional "gemini" "https://github.com/google-gemini/gemini-cli"
 check_optional "tmux" "https://github.com/tmux/tmux/wiki/Installing"
+check_gitleaks() {
+  if command -v gitleaks >/dev/null 2>&1; then
+    success "gitleaks found ($(gitleaks version 2>/dev/null | head -1))"
+    return
+  fi
+  local macos_major
+  macos_major="$(sw_vers -productVersion 2>/dev/null | cut -d. -f1)"
+  if [ "$macos_major" -ge 13 ] 2>/dev/null; then
+    warn "gitleaks not found. Install: brew install gitleaks"
+  else
+    local arch
+    arch="$(uname -m)"
+    local suffix="darwin_x64"
+    [ "$arch" = "arm64" ] && suffix="darwin_arm64"
+    warn "gitleaks not found. macOS ${macos_major:-?} has no Homebrew bottle — install via direct binary:"
+    printf "${YELLOW}   curl -L https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.30.1_${suffix}.tar.gz | tar xz && sudo mv gitleaks /usr/local/bin/${RESET}\n"
+  fi
+}
 
-section "2/4 Install Python dependencies"
+check_gitleaks
+
+section "2/4 Python 의존성 설치"
 VENV_DIR="$ROOT_DIR/.venv"
 if [ ! -d "$VENV_DIR" ]; then
   python3 -m venv "$VENV_DIR"
@@ -87,16 +108,16 @@ fi
 "$VENV_DIR/bin/pip" install -r "$ROOT_DIR/requirements.txt" -q
 success "Installed Python dependencies"
 
-section "3/4 Environment variables"
+section "3/4 환경변수 설정"
 load_env_file
-success "Add any project-specific env vars to .env (it is gitignored)"
+success "TG 토큰은 os2-hub에서 설정합니다"
+success "Run: /Users/hoanshin/Desktop/thePRD/os2-hub/scripts/setup.sh"
 
-section "4/4 Check Claude 2 credentials (Account B)"
+section "4/4 Claude 2 인증 확인"
 if [ -f "$ROOT_DIR/.claude-b/.claude.json" ]; then
   success "Claude 2 credentials found"
 else
-  warn "Claude 2 credentials not found. To set up Account B:"
-  warn "  CLAUDE_CONFIG_DIR=.claude-b claude login"
+  warn "Claude 2 credentials missing (.claude.json). Run: CLAUDE_CONFIG_DIR=.claude-b claude login"
 fi
 
 printf "\n"

@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/version-3.1-blue) ![GitHub Template](https://img.shields.io/badge/GitHub-Template-238636?logo=github) ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white) ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
+![Version](https://img.shields.io/badge/version-3.2-blue) ![GitHub Template](https://img.shields.io/badge/GitHub-Template-238636?logo=github) ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white) ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
 
 # Vibe Coding OS
 
@@ -89,8 +89,17 @@ sequenceDiagram
 
 **Quality Gates**
 - **4-stage pipeline** — Tests → secret scanning → AI code review → custom verification runs after every ticket
-- **Auto-retry with rollback** — On gate failure, changes roll back and the agent retries (configurable per priority)
+- **Auto-retry with rollback** — On gate failure, changes roll back (tracked *and* untracked files) and the agent retries
 - **Agent-review** — Claude 1 verifies every diff against the ticket's acceptance criteria (PASS/FAIL verdict)
+- **Baseline gates** — secret scan (gitleaks), contract sync, ticket file-scope, session-log presence, TDD first-commit check
+
+**Testing Policy (Phase 3.5)**
+- **Maturity ceiling** — contract + UI smoke + scenario integration tests (no full E2E)
+- **Coverage gate** — Line 70% / Branch 60% with 3-ticket grace period per app
+- **DOD error-case rule** — every success DOD requires a matching failure DOD
+- **Partial TDD** — `tdd: required` on business logic; UI excluded by design
+- **Hybrid authorship** — cross-test for logic (CODEX tests ↔ CLAUDE2 impl), self-test for UI
+- **On-demand mutation testing** — Claude 1 proposes, user approves, overnight execution
 
 **Communication**
 - **Repo-as-SSOT** — All agent state lives in files; auditable, portable, no black-box memory
@@ -184,8 +193,16 @@ repo/
   .claude-b/
     CLAUDE.md                # Claude 2 operating rules (Account B)
   Makefile                   # Primary CLI interface
-  requirements.txt           # pyyaml>=6.0
-  scripts/setup.sh           # First-time setup script
+  requirements.txt           # pyyaml>=6.0, pytest>=8.0
+  scripts/
+    setup.sh                 # First-time setup script
+    check-contract-sync.sh   # Baseline gate: contract files in sync
+    check-ticket-scope.sh    # Baseline gate: diff stays within ticket files
+    check-session-log.sh     # Baseline gate: session log written
+    check-tdd-first-commit.sh # Baseline gate: TDD first-commit test presence
+  tests/
+    integration/             # Gate integration tests (bash)
+    unit/                    # Schema unit tests (pytest)
   com.os2.server.plist       # macOS launchd config (always-on daemon)
 
   server/                    # os2-server (Python dispatcher)
@@ -244,6 +261,9 @@ Claude 1 writes **WHAT** (behavioral requirements with verifiable acceptance cri
     - "apps/api/src/feature.ts"
   verify: "make pr-check"
   deps: []
+  tdd: required         # required|skip|self-evident (v3.2)
+  test_owner: CODEX     # who writes tests (cross-test for logic)
+  impl_owner: CLAUDE2   # who writes implementation
 ```
 
 ### Gate pipeline
@@ -252,12 +272,15 @@ After each agent completes a ticket, the dispatcher runs:
 
 ```
 1. make test          — test suite
-2. make scan-secrets  — secret scanning
-3. agent-review       — Claude 1 reviews diff against DOD (PASS/FAIL)
-4. ticket verify      — ticket-specific verify command
+2. make scan-secrets  — secret scan (gitleaks)
+3. make pr-check      — baseline gates: contract-sync, ticket-scope,
+                        session-log, TDD first-commit
+4. agent-review       — Claude 1 reviews diff against DOD (PASS/FAIL)
+5. ticket verify      — ticket-specific verify command
 ```
 
-On gate failure: files roll back and the agent retries automatically.
+On gate failure: files roll back (tracked files restored from HEAD; untracked
+files inside ticket scope removed) and the agent retries automatically.
 Retry count is priority-based: critical → 3, high → 2, medium/low → 1.
 
 ### Auto-chain dispatch
@@ -313,7 +336,8 @@ Yes, with one exception: the launchd daemon (`com.os2.server.plist`) is macOS-on
 
 | Version | Highlights |
 |---------|------------|
-| **v3.1** *(current)* | Claude 2 (Account B) replaces Gemini · Auto-chain dispatch · Gate pipeline with auto-retry · `os2.yaml` config |
+| **v3.2** *(current)* | Testing maturity Phase 3.5 policy · `tdd`/`test_owner`/`impl_owner` schema · Baseline gates (contract-sync, ticket-scope, session-log, TDD first-commit) · Dispatcher rollback for untracked files · On-demand mutation testing protocol |
+| v3.1 | Claude 2 (Account B) replaces Gemini · Auto-chain dispatch · Gate pipeline with auto-retry · `os2.yaml` config |
 | v3.0 | os2-server · Plan approval workflow · Builder and Operation guides |
 | v2.0 | Native instruction files · Session logs · Agent registry · WHAT+CONTEXT ticket design |
 | v1.5 | Token-efficient multi-LLM OS |

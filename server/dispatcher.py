@@ -1,6 +1,6 @@
 """Multi-agent dispatcher for os2-server.
 
-Dispatches Claude 2, Codex, and other agents for ticket execution.
+Dispatches Claude 2, Codex, and Gemini for ticket execution.
 Runs gate pipelines (tests, review) after completion.
 Supports auto-retry on gate failure.
 """
@@ -15,7 +15,13 @@ import subprocess
 import threading
 from pathlib import Path
 
-from .ssot import get_recent_logs, read_queue, update_ticket_fields, update_ticket_status
+from .ssot import (
+    ValidationError,
+    get_recent_logs,
+    read_queue,
+    update_ticket_fields,
+    update_ticket_status,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +49,10 @@ class Dispatcher:
         Returns (success, message).
         """
         with self._state_lock:
-            data = read_queue(self.paths["queue"])
+            try:
+                data = read_queue(self.paths["queue"])
+            except ValidationError as exc:
+                return False, f"ValidationError: {exc}"
             ticket = next((t for t in data.get("tickets", []) if t.get("id") == ticket_id), None)
 
             if not ticket:
@@ -54,11 +63,12 @@ class Dispatcher:
                 return False, f"Ticket `{ticket_id}` is `{status}`, not `todo`. Cannot dispatch."
 
             owner = ticket.get("owner")
-            if owner not in self.agent_configs:
-                return False, f"Unknown owner `{owner}` for ticket `{ticket_id}`."
+            target_owner = ticket.get("impl_owner") or owner
+            if target_owner not in self.agent_configs:
+                return False, f"Unknown owner `{target_owner}` for ticket `{ticket_id}`."
 
             # Fallback: if agent not available, use fallback agent
-            resolved_owner, fallback_reason = self._resolve_agent(owner)
+            resolved_owner, fallback_reason = self._resolve_agent(target_owner)
 
             # Check dependencies
             deps = ticket.get("deps", [])
@@ -83,8 +93,8 @@ class Dispatcher:
                     self.paths["queue"],
                     ticket_id,
                     {
-                        "owner": resolved_owner,
-                        "_original_owner": ticket.get("_original_owner", owner),
+                        "_dispatch_owner": resolved_owner,
+                        "_original_impl_owner": ticket.get("_original_impl_owner", target_owner),
                         "_fallback_reason": fallback_reason,
                     },
                 )
@@ -107,7 +117,10 @@ class Dispatcher:
         Blocks until all dispatched agents finish (required for CLI mode).
         Returns list of (ticket_id, message).
         """
-        data = read_queue(self.paths["queue"])
+        try:
+            data = read_queue(self.paths["queue"])
+        except ValidationError as exc:
+            return [("QUEUE", f"ValidationError: {exc}")]
         results = []
         for ticket in data.get("tickets", []):
             if ticket.get("status") != "todo":
@@ -196,7 +209,10 @@ class Dispatcher:
         if not self._auto_chain_enabled():
             return []
 
-        data = read_queue(self.paths["queue"])
+        try:
+            data = read_queue(self.paths["queue"])
+        except ValidationError as exc:
+            return [("QUEUE", f"ValidationError: {exc}")]
         results: list[tuple[str, str]] = []
         for ticket in data.get("tickets", []):
             if ticket.get("status") != "todo":
@@ -529,23 +545,52 @@ Respond with EXACTLY one of:
             return True
 
         root = str(self.paths["root"])
-        checkout_cmd = ["git", "checkout", "HEAD", "--", *files]
-        try:
-            checkout_result = subprocess.run(
-                checkout_cmd,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=root,
-            )
-        except (subprocess.TimeoutExpired, Exception) as exc:
-            logger.error(f"Rollback failed for {ticket_id}: {exc}")
-            return False
+        failed_files: list[str] = []
 
-        if checkout_result.returncode != 0:
-            error_output = (checkout_result.stderr or checkout_result.stdout or "git checkout failed").strip()
-            logger.error(f"Rollback failed for {ticket_id}: {error_output}")
-            return False
+        for file_path in files:
+            tracked_cmd = ["git", "ls-files", "--error-unmatch", "--", file_path]
+            try:
+                tracked_result = subprocess.run(
+                    tracked_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    cwd=root,
+                )
+            except (subprocess.TimeoutExpired, Exception) as exc:
+                logger.error(f"Rollback failed for {ticket_id} on {file_path}: {exc}")
+                failed_files.append(file_path)
+                continue
+
+            target_path = Path(root) / file_path
+            if tracked_result.returncode == 0:
+                rollback_cmd = ["git", "restore", "--worktree", "--source=HEAD", "--", file_path]
+            elif target_path.exists():
+                rollback_cmd = ["git", "clean", "-f", "--", file_path]
+            else:
+                continue
+
+            try:
+                rollback_result = subprocess.run(
+                    rollback_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    cwd=root,
+                )
+            except (subprocess.TimeoutExpired, Exception) as exc:
+                logger.error(f"Rollback failed for {ticket_id} on {file_path}: {exc}")
+                failed_files.append(file_path)
+                continue
+
+            if rollback_result.returncode != 0:
+                error_output = (
+                    rollback_result.stderr
+                    or rollback_result.stdout
+                    or f"{rollback_cmd[1]} failed"
+                ).strip()
+                logger.error(f"Rollback failed for {ticket_id} on {file_path}: {error_output}")
+                failed_files.append(file_path)
 
         status_cmd = ["git", "status", "--short", "--", *files]
         try:
@@ -568,6 +613,17 @@ Respond with EXACTLY one of:
         remaining = status_result.stdout.strip()
         if remaining:
             logger.error(f"Rollback left scope dirty for {ticket_id}: {remaining}")
+            for line in remaining.splitlines():
+                dirty_path = line[3:].strip()
+                if dirty_path and dirty_path not in failed_files:
+                    failed_files.append(dirty_path)
+
+        if failed_files:
+            logger.error(
+                "Rollback incomplete for %s; failed files: %s",
+                ticket_id,
+                ", ".join(failed_files),
+            )
             return False
 
         return True
@@ -652,7 +708,7 @@ Respond with EXACTLY one of:
 {yaml.dump(retry_ticket, allow_unicode=True)}
 ```
 
-Your previous changes have been rolled back. Work from the original code.
+이전 시도의 변경은 롤백됨, 원본 코드 기준으로 작업.
 
 Fix the issues identified in the gate failure, then:
 1. Run the verify command in the ticket

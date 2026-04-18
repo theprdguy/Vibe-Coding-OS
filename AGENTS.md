@@ -33,6 +33,36 @@ Read latest devos/logs/ for cross-agent context.
 2. **Search Before Build**: Check existing code and libraries before writing new
 3. **Completeness**: Fulfill every DOD item including edge cases
 
+## Test Role
+Your role in tests depends on the ticket's `tdd` field and `test_owner`/`impl_owner`.
+
+### Logic tickets (`tdd: required`, you as `test_owner`)
+- You write the **failing tests first** — before any implementation exists.
+- Tests encode the ticket DOD. Each DOD item (success + error) gets a test.
+- Your first commit to this ticket MUST include the test files. This is enforced
+  by the TDD first-commit gate (pr-check).
+- Assertions must be specific: check exact status codes, error messages, field
+  names, values — not just truthiness. See Claude 1's review checklist for what
+  gets rejected.
+- After committing failing tests, hand off to `impl_owner` (usually CLAUDE2).
+
+### Infrastructure / tooling tickets (single-owner exception)
+- For tickets where `test_owner == impl_owner == CODEX` (infra, scripts, gates),
+  you write both the test scenarios and the implementation.
+- Still follow test-first within the ticket: the first commit includes the test
+  scenario file (e.g., `tests/integration/test_*.sh`), then the implementation.
+
+### UI tickets
+- You do NOT write UI tests by default (CLAUDE2 self-tests UI per `.claude-b/CLAUDE.md`).
+- Exception: if a ticket assigns `test_owner: CODEX` explicitly for UI, follow the
+  logic-ticket protocol above.
+
+### Coverage responsibility
+- As test_owner: write enough tests that Branch coverage 60% is achievable once
+  impl_owner finishes. Do not rely on impl_owner to backfill error cases.
+- As impl_owner (single-owner case): confirm coverage meets Line 70% / Branch 60%
+  before marking ticket done.
+
 ## Session Log (mandatory)
 Path: `devos/logs/{YYYY-MM-DD}-codex-{ticket-ids}.md` — max 50 lines.
 

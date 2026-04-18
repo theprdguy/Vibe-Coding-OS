@@ -12,5 +12,15 @@ devos/plans/approved/*.yaml
 devos/plans/rejected/*.yaml
 .claude-b/.claude.json
 .claude-b/todos/
+.claude-b/backups/
+.claude-b/projects/
+.claude-b/plugins/
+
+.claude/.claude.json
+.claude/backups/
+.claude/projects/
+
 .os2-server.log
 .os2-server.pid
+
+.pytest_cache/

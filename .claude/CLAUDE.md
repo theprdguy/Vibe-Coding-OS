@@ -16,8 +16,9 @@
 
 ### 2. ALWAYS CREATE TICKETS
 - Every implementation task → ticket in devos/tasks/QUEUE.yaml
-- Include: id, owner, goal, context, constraints, dod, files, verify, deps, gates
-- Owner is CLAUDE2 or CODEX — never CLAUDE1
+- Include: id, owner, goal, context, constraints, dod, files, verify, deps, gates, tdd, test_owner, impl_owner
+- Owner is CLAUDE2 or CODEX for implementation tickets.
+- **Exception**: policy/SSOT doc tickets (files entirely within `devos/**`, `.claude/**`, `.claude-b/**`, `AGENTS.md`) may have `owner: CLAUDE1`. Execute interactively — do not expect the subprocess dispatcher to handle CLAUDE1 tickets.
 
 ### 3. TICKET QUALITY
 - You write WHAT (goal, dod, constraints) and CONTEXT (research results)
@@ -51,6 +52,51 @@ You have tools that builders lack (MCP/context7, LSP). Use them to:
 - Research latest library APIs and breaking changes
 - Verify version compatibility and constraints
 - Include findings in ticket `context:` field
+
+---
+
+## TEST REVIEW CHECKPOINTS
+
+When reviewing builder PRs with test files (both test_owner and impl_owner commits), check:
+
+### 1. Assertion specificity
+- ❌ `assert response` — truthy check only, near-useless
+- ❌ `assert result is not None` — doesn't verify correctness
+- ✅ `assert response.status_code == 401` — specific expected value
+- ✅ `assert "invalid credentials" in response.json()["error"]` — checks message content
+
+### 2. DOD↔test mapping
+Every DOD item (success AND error case) must have a corresponding test.
+Walk through the ticket DOD list and tick off which test covers each item.
+If a DOD item has no test, flag it — do not merge.
+
+### 3. Error-case coverage
+Confirm failure/error-case DOD items are actually tested.
+Branch coverage metric is the safety net, but direct review catches missed cases faster.
+
+### 4. Test isolation
+- Tests must not share mutable state between runs
+- Database fixtures should reset per test
+- No reliance on test execution order
+
+### 5. Mutation proposal triggers
+While reviewing, if you spot 3+ suspicious tests (tautological, weak assertions),
+propose mutation testing to the user per Testing Policy §6.
+
+---
+
+## MUTATION TEST PROPOSAL PROTOCOL
+
+When proposing mutation testing to the user, include:
+- **Trigger**: which of the 5 criteria in AI.md Testing Policy §6 fired
+- **Scope**: which files/directories to mutate (business logic only — exclude UI, Playwright)
+- **Estimated runtime**: based on file count and current test duration
+- **Target computer**: the one with the most recent commits (active laptop)
+- **Schedule**: suggest `at 02:00` (or user-adjusted time)
+
+On approval, schedule via `echo "caffeinate -s make mutation-test" | at 02:00`.
+Next session: read `devos/logs/mutation/{date}.md`, classify survivors,
+create follow-up test-boost tickets if needed.
 
 ---
 

@@ -1,6 +1,6 @@
-version: '3.0'
+version: '3.2'
 
-# ─── Ticket Template v3.1 (WHAT + CONTEXT) ───
+# ─── Ticket Template v3.2 (WHAT + CONTEXT + TDD) ───
 # Claude 1 writes WHAT and CONTEXT. Builders decide HOW.
 #
 # - id: T-XXX
@@ -14,13 +14,18 @@ version: '3.0'
 #   constraints:
 #     - "Technical constraint"
 #   dod:
-#     - "Acceptance criterion (input → expected output)"
+#     - "Success: POST /x with valid input returns 200 + expected body"
+#     - "Error:   POST /x with invalid input returns 400 + error message"
 #   files:
 #     - "path/to/file"
 #   verify: "make pr-check"
 #   deps: []
 #   gates: []  # leave empty to use os2.yaml defaults
-# ──────────────────────────────────────────────
+#   tdd: required|skip|self-evident       # default: skip
+#   test_owner: CODEX|CLAUDE2|n/a          # default: owner
+#   impl_owner: CLAUDE2|CODEX              # default: owner
+# ───────────────────────────────────────────────────
+# See devos/AI.md "Testing Policy" for when tdd: required applies.
 
 tickets:
 - id: T-001
