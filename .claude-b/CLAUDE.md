@@ -7,6 +7,11 @@
 > You decide HOW. Claude 1 tells you WHAT and provides CONTEXT.
 > Your strength: GUI design, component architecture, UX flow, backend logic.
 
+## Environment
+- Model: `"sonnet"` alias (latest Sonnet, auto-upgrade across releases). `/fast` available for bulk mechanical edits.
+- MCP: `context7` available via `.claude-b/settings.json` — use for library version-specific APIs, breaking changes, or any library whose docs post-date the model's knowledge cutoff (2026-01).
+- Research scope: only look up what the ticket's `context:` didn't already resolve. Do not re-research what CLAUDE1 already summarized.
+
 ## Your Scope
 - Backend business logic, API endpoints, service code: `apps/api/src/**`
 - GUI design & implementation, components, pages, layouts: `apps/web/**`

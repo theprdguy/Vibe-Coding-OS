@@ -27,6 +27,14 @@ Claude 1 plans and researches. Claude 2 and Codex implement.
 - Builders MUST NOT modify files outside their ticket scope
 - Builders MUST NOT make architectural decisions — queue questions instead
 
+## Model Tiering
+- **CLAUDE1**: user selects per session via `/model` + `/effort`. Not pinned in `.claude/settings.json`.
+  Default guidance — heavy planning/review/mutation judgment: Opus 4.7 with `xhigh`. Light triage/status: Sonnet or Opus at default effort.
+- **CLAUDE2**: pinned to `"sonnet"` alias in `.claude-b/settings.json` (auto-tracks latest Sonnet). `/fast` mode available.
+- **CODEX**: `codex` CLI — Anthropic model rollouts do not apply.
+
+Pinning principle: prefer family aliases (`sonnet`, `opus`) over minor-version IDs so releases propagate without manual config edits. Pin a specific version only with a reproducibility rationale.
+
 ## Ticket Standard
 - `status`: Must be `todo` for new tickets — dispatcher only picks up `todo`
 - `goal`: What to build (behavioral requirement)

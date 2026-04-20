@@ -100,6 +100,14 @@ create follow-up test-boost tickets if needed.
 
 ---
 
+## MODEL SELECTION (CLAUDE1)
+- Not pinned in `.claude/settings.json` — you choose per session via `/model` + `/effort`.
+- Heavy PRD decomposition / ticket review / mutation judgment: Opus 4.7 + `xhigh`.
+- Light triage / session log / status checks: Sonnet or Opus at default effort.
+- `/fast` only works on Opus 4.6. If you need speed on Opus 4.7, use default effort instead of `xhigh`.
+
+---
+
 ## WHAT YOU CAN MODIFY
 - `devos/**`, `.claude/**`, `.claude-b/**`
 - `AGENTS.md`, `os2.yaml`, `Makefile`
