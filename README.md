@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/version-3.2-blue) ![GitHub Template](https://img.shields.io/badge/GitHub-Template-238636?logo=github) ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white) ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
+![Version](https://img.shields.io/badge/version-3.3-blue) ![GitHub Template](https://img.shields.io/badge/GitHub-Template-238636?logo=github) ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white) ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
 
 # Vibe Coding OS
 
@@ -336,7 +336,8 @@ Yes, with one exception: the launchd daemon (`com.os2.server.plist`) is macOS-on
 
 | Version | Highlights |
 |---------|------------|
-| **v3.2** *(current)* | Testing maturity Phase 3.5 policy · `tdd`/`test_owner`/`impl_owner` schema · Baseline gates (contract-sync, ticket-scope, session-log, TDD first-commit) · Dispatcher rollback for untracked files · On-demand mutation testing protocol |
+| **v3.3** *(current)* | Skills Integration (Anthropic superpowers plugin — `brainstorming` / `writing-plans` / `dispatching-parallel-agents` / `systematic-debugging` / `requesting-code-review` / `verification-before-completion`) · `skills_hint` ticket field · Structured prompts library (`devos/prompts/{claude,claude2,codex,common}/` — session-start, decompose-prd, review-pr, handoff-3lines, edit-failure-recovery) · `devos/AI.md` ops sections (Session-Start Read Map · Dispatch Model — fresh session & self-contained tickets · Memory Save Triggers · Session-length / Edit-uniqueness guidelines) · CLAUDE2 pinned to `sonnet` family alias · `context7` MCP wired · Preflight hard-block when CLAUDE2 setup is incomplete |
+| v3.2 | Testing maturity Phase 3.5 policy · `tdd`/`test_owner`/`impl_owner` schema · Baseline gates (contract-sync, ticket-scope, session-log, TDD first-commit) · Dispatcher rollback for untracked files · On-demand mutation testing protocol |
 | v3.1 | Claude 2 (Account B) replaces Gemini · Auto-chain dispatch · Gate pipeline with auto-retry · `os2.yaml` config |
 | v3.0 | os2-server · Plan approval workflow · Builder and Operation guides |
 | v2.0 | Native instruction files · Session logs · Agent registry · WHAT+CONTEXT ticket design |
