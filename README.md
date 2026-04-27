@@ -673,4 +673,22 @@ Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The short vers
 
 ---
 
-<sub>Built on top of [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), the Anthropic superpowers plugin, and the [OpenAI Codex CLI](https://platform.openai.com/docs/codex/overview). README structure inspired by [oh-my-opencode](https://github.com/opensoft/oh-my-opencode) — personify the agent, describe the runtime in present tense, give every knob a flat path.</sub>
+## Credits & inspiration
+
+Vibe Coding OS stands on the shoulders of these projects. Where we vendor code, the file header carries the source URL and license. Where we borrow patterns or prompts, this section is the attribution of record.
+
+**Built on:**
+- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)** — Anthropic's CLI for Claude. The harness for CLAUDE1 and CLAUDE2.
+- **[OpenAI Codex CLI](https://platform.openai.com/docs/codex/overview)** — the platform-builder agent.
+- **[obra/superpowers](https://github.com/obra/superpowers)** — Jesse Vincent's agentic skills framework. We use the `brainstorming`, `writing-plans`, `dispatching-parallel-agents`, `systematic-debugging`, `requesting-code-review`, and `verification-before-completion` skills directly through the [Anthropic claude-plugins-official marketplace](https://github.com/anthropics/claude-plugins-official). Setup: `devos/docs/SKILLS_PLUGIN_INSTALL.md`.
+
+**Patterns borrowed:**
+- **[gsd-build/get-shit-done](https://github.com/gsd-build/get-shit-done)** (MIT) — `.claude/hooks/context-monitor.js` is vendored from GSD's `gsd-context-monitor.js` (vendoring header preserved in the file). The workflow-guard advisory pattern in `.claude/hooks/guard-no-impl.sh` is adapted from `gsd-workflow-guard.js`. The statusline hook draws from `gsd-statusline.js`.
+- **[garrytan/gstack](https://github.com/garrytan/gstack)** — `devos/prompts/claude/security-audit.md` borrows the *prompt portion* of GStack's `/cso` (Chief Security Officer) skill. We do not ship GStack's 22 MB ML classifier, the Haiku transcript voting, or the canary-token system — only the OWASP A01–A10 + STRIDE prompt that drives the audit. Effectiveness ~70–80% of the original; high launch-impact areas (payment processing, etc.) still warrant a separate external audit.
+- **[opensoft/oh-my-opencode](https://github.com/opensoft/oh-my-opencode)** — README structure: personify the agent, describe runtime behavior in present tense, split install into For Humans / For LLM Agents tracks, expose configuration as path → flat capability list.
+
+If your work is referenced and you'd like an attribution updated, link corrected, or removed, please open an issue.
+
+---
+
+<sub>v3.4 · Built with Claude Code, Codex CLI, and the superpowers plugin · Patterns from GSD, GStack, and oh-my-opencode</sub>
