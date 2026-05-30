@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vibe Coding OS — Architecture Deep Dive</title>
+<style>
+  :root{--bg:#0c0f15;--panel:#11151e;--card:#161b26;--card2:#1c2230;--line:#262d3b;--ink:#e7ecf3;--ink2:#a6b1c3;--ink3:#6f7b91;--acc:#6ea8fe;--acc2:#9d7bff;--ok:#34d399;--warn:#fbbf24;--block:#fb7185;--builder:#22d3ee;--reviewer:#fb7185;--designer:#c084fc;--security:#fb923c;--codex:#34d399;--claude1:#fbbf24;--mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.68;font-size:15.5px;-webkit-font-smoothing:antialiased}
+  a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+  code{font-family:var(--mono);font-size:.85em;background:#080b11;border:1px solid var(--line);border-radius:4px;padding:.08em .38em;color:#bfe3ff}
+  pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:#080b11;border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;color:#ccd6e4}
+  .wrap{max-width:920px;margin:0 auto;padding:0 22px}
+  header.hero{border-bottom:1px solid var(--line);background:radial-gradient(900px 380px at 80% -10%,rgba(157,123,255,.18),transparent 60%),radial-gradient(700px 320px at 5% 0,rgba(110,168,254,.14),transparent 55%),var(--bg)}
+  .hero-in{padding:60px 0 40px}
+  .kick{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);border:1px solid var(--line);background:var(--card);padding:5px 12px;border-radius:999px;margin-bottom:18px}
+  h1{font-size:clamp(30px,5vw,46px);line-height:1.05;margin:0 0 14px;letter-spacing:-.02em;font-weight:800}
+  h1 .g{background:linear-gradient(100deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{font-size:18px;color:var(--ink2);max-width:760px;margin:0 0 18px}
+  .langs{font-size:13px;color:var(--ink3)}.langs a{font-weight:600}
+  nav.toc{position:sticky;top:0;z-index:20;background:rgba(12,15,21,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  nav.toc .wrap{display:flex;gap:2px;overflow-x:auto;padding:9px 22px}
+  nav.toc a{white-space:nowrap;font-size:13px;color:var(--ink3);padding:6px 11px;border-radius:7px}
+  nav.toc a:hover{color:var(--ink);background:var(--card);text-decoration:none}
+  section{padding:42px 0;border-top:1px solid var(--line)}section:first-of-type{border-top:none}
+  h2{font-size:24px;font-weight:800;letter-spacing:-.015em;margin:0 0 10px}
+  h2 .n{font-family:var(--mono);font-size:15px;color:var(--acc2);font-weight:600;margin-right:8px}
+  h3{font-size:17px;font-weight:700;margin:24px 0 8px}
+  p{color:var(--ink2);margin:0 0 13px}ul,ol{color:var(--ink2);padding-left:20px}li{margin:5px 0}
+  strong{color:var(--ink)}.muted{color:var(--ink3)}.lead2{font-size:16px;color:var(--ink)}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--ink);font-weight:700;background:var(--card2);white-space:nowrap}td{color:var(--ink2)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:13px 0}
+  .grid{display:grid;gap:13px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+  .note{border-left:3px solid var(--acc);background:var(--card);border-radius:0 10px 10px 0;padding:12px 16px;margin:14px 0}
+  .note .l{font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--acc);display:block;margin-bottom:4px}
+  .note.warn{border-color:var(--warn)}.note.warn .l{color:var(--warn)}
+  .chip{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);background:#080b11;color:var(--ink2)}
+  .b{color:var(--builder)}.r{color:var(--reviewer)}.d{color:var(--designer)}.s{color:var(--security)}.cx{color:var(--codex)}.c1{color:var(--claude1)}
+  .agent{border-left:4px solid var(--line);background:var(--card);border-radius:0 12px 12px 0;padding:14px 18px;margin:10px 0}
+  .agent .top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:5px}.agent .nm{font-weight:800;font-size:16px}
+  .agent.c1{border-color:var(--claude1)}.agent.c1 .nm{color:var(--claude1)}
+  .agent.b{border-color:var(--builder)}.agent.b .nm{color:var(--builder)}
+  .agent.r{border-color:var(--reviewer)}.agent.r .nm{color:var(--reviewer)}
+  .agent.cx{border-color:var(--codex)}.agent.cx .nm{color:var(--codex)}
+  .diagram{background:#080b11;border:1px solid var(--line);border-radius:12px;padding:6px 14px;overflow-x:auto}
+  .diagram pre{border:none;background:none;font-size:12px;color:#9fb0c8;white-space:pre}
+  .foot{color:var(--ink3);font-size:13px;padding:36px 0 60px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap hero-in">
+  <span class="kick">● Vibe Coding OS · Architecture</span>
+  <h1>How the OS <span class="g">actually works</span></h1>
+  <p class="lead">A deep dive into the layers, agents, and enforcement of Vibe Coding OS — the part the README summarizes. Written for people who want to understand <em>why</em> it's safe, not just <em>that</em> it is.</p>
+  <p class="langs">🌐 <strong>English</strong> · <a href="deep-dive.ko.html">한국어</a> · <a href="../README.md">← README</a></p>
+</div></header>
+
+<nav class="toc"><div class="wrap">
+  <a href="#tl">Summary</a><a href="#layers">3 layers</a><a href="#agents">Agents</a><a href="#tickets">Tickets</a>
+  <a href="#flow">Flow</a><a href="#dispatch">Dispatch</a><a href="#modes">Modes</a><a href="#safety">Safety</a>
+  <a href="#ssot">SSOT</a><a href="#hostos">Host-OS</a><a href="#feedback">Feedback loop</a><a href="#cli">Commands</a><a href="#glossary">Glossary</a>
+</div></nav>
+
+<section id="tl"><div class="wrap">
+  <h2><span class="n">0</span>One paragraph</h2>
+  <p class="lead2">Vibe Coding OS turns "telling an AI to write code" into an <strong>auditable state machine</strong>. All truth lives in files under <code>devos/</code>; work moves only as <strong>tickets</strong>; and who did what, and why, is recorded in per-ticket transition history and session logs.</p>
+  <div class="card"><p style="margin:0;color:var(--ink)">You (the PM) describe intent → <span class="c1">CLAUDE1</span> decomposes it into <strong>tickets</strong> and interrogates the missing error/edge/security cases → you <strong>approve</strong> the plan → the ticket's owner (<span class="b">builder</span> in-session or <span class="cx">CODEX</span> subprocess) implements → baseline gates + a <strong>read-only</strong> review board check it → if risky or uncertain, a different vendor (<span class="cx">CODEX b'</span>) gives a second opinion → no BLOCKER means <code>done</code>; a BLOCKER means <code>blocked</code> + a decision queued for you.</p></div>
+</div></section>
+
+<section id="layers"><div class="wrap">
+  <h2><span class="n">1</span>Three layers</h2>
+  <p>The system is three layers. The top two are "what it does"; the bottom one is "what stops you breaking the rules." Most of the safety comes from the third.</p>
+  <table>
+    <thead><tr><th>Layer</th><th>What</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1 · State</strong></td><td>file-based SSOT (<code>devos/</code>)</td><td>remembers what the project is and where it stands</td></tr>
+      <tr><td><strong>2 · Agents</strong></td><td>planner + 2 implementers + read-only review board</td><td>plan, implement, review</td></tr>
+      <tr><td><strong>3 · Enforcement</strong></td><td>tool permissions · hooks · gates · grep · locked decisions</td><td>makes the rules structural, not trust-based</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">Core principle: <strong>roles and permissions are separated, and permission is limited at the tool layer.</strong> A reviewer has no Edit/Write tool — it literally cannot "fix" what it found, so self-review objectivity can't collapse.</p>
+</div></section>
+
+<section id="agents"><div class="wrap">
+  <h2><span class="n">2</span>The agents</h2>
+  <p>Each agent uses a different model and a different set of tools. Permission separation is enforced by structure, not goodwill.</p>
+  <div class="agent c1"><div class="top"><span class="nm">CLAUDE1 (main)</span><span class="chip">Opus</span><span class="chip">plan · orchestrate</span></div><p>Talks to you. Decomposes PRDs into tickets, researches, routes work. Does not write production code; does not OK results directly — that goes to the review board.</p></div>
+  <div class="agent b"><div class="top"><span class="nm">builder</span><span class="chip">Sonnet</span><span class="chip">Read·Edit·Write·Bash</span></div><p>In-session implementer. Preferred for ambiguous, experience-heavy UI and new UX flows. Touches only the ticket's declared files.</p></div>
+  <div class="agent cx"><div class="top"><span class="nm">CODEX</span><span class="chip">external CLI</span><span class="chip">subprocess · sandbox</span></div><p>Platform implementer — backend/API/data/infra/tests/migrations — and the cross-model second opinion (b'). A different vendor, so it catches blind spots Claude shares.</p></div>
+  <div class="agent r"><div class="top"><span class="nm">reviewer · designer · security</span><span class="chip" style="color:var(--reviewer)">READ-ONLY</span></div><p>The review board (Opus/Sonnet). reviewer = adversarial PR review (DOD↔test, assertions, scope, contracts). designer = UI/UX (consistency, states, accessibility). security = OWASP + STRIDE, auto-invoked for auth/payment/permissions/external input. <strong>None has an Edit/Write tool.</strong></p></div>
+  <div class="note"><span class="l">Why read-only matters</span><p>Most teams say "don't merge your own PR" as <em>policy</em>. Here it's <em>permission</em>: the reviewers have no write tool, so they report findings and cannot quietly fix them. Structural objectivity.</p></div>
+</div></section>
+
+<section id="tickets"><div class="wrap">
+  <h2><span class="n">3</span>Tickets — the unit of work</h2>
+  <p>Every implementation is a ticket in <code>devos/tasks/QUEUE.yaml</code>. <strong>1 ticket = 1 PR.</strong> A ticket is self-contained — an implementer reading only the ticket + SSOT can execute it.</p>
+  <pre><code>- id: T-AUTH-LOGIN-01
+  status: todo            <span class="muted"># the dispatcher only picks up `todo`</span>
+  owner: CODEX            <span class="muted"># BUILDER | CODEX</span>
+  mode: production        <span class="muted"># gate posture (see §6)</span>
+  tdd: required           <span class="muted"># required | skip | self-evident</span>
+  security_audit: true    <span class="muted"># auto-forced for auth/payment/permissions/...</span>
+  goal: |   POST /auth/login
+  dod:
+    - 'valid credentials -> 200 + access/refresh JWT'      <span class="muted"># success</span>
+    - 'wrong password -> 401 + "invalid credentials"'      <span class="muted"># error (mandatory)</span>
+  files: [apps/api/src/auth/login.py, tests/test_login.py]
+  verify: |  python3 -m pytest tests/test_login.py -v
+  gates: [pr-check]</code></pre>
+  <p><strong>DOD rule:</strong> if a success-case DOD exists, a <strong>failure/error-case DOD is mandatory</strong>. This is how the system fills the "non-developer writes only the happy path" gap.</p>
+  <h3>Status machine + audit trail</h3>
+  <p>States: <span class="chip">todo</span> <span class="chip">doing</span> <span class="chip">code_ready</span> <span class="chip">needs_pm</span> <span class="chip">done</span> <span class="chip">blocked</span> <span class="chip">parked</span>. Every transition records <code>actor · reason · timestamp</code> into the ticket's <code>_transition_history</code> — so you reconstruct <em>why</em> a ticket is where it is from the file, not the chat.</p>
+</div></section>
+
+<section id="flow"><div class="wrap">
+  <h2><span class="n">4</span>The flow</h2>
+  <div class="diagram"><pre>You --PRD--> CLAUDE1
+               | intake checklist (force missing error/edge/security cases)
+               | extract user journeys -> decompose into tickets
+               v
+       plans/pending/  --you: os3 approve-->  tasks/QUEUE.yaml
+                                                   |
+                              os3 dispatch T-XXX   v
+          owner=BUILDER -> in-session sub-agent   owner=CODEX -> subprocess
+                                 | implements
+                                 v
+          os3 pr-check (secrets · contract · scope · session log · TDD)
+                                 v
+          review board (reviewer/security/designer — read-only, by ticket type)
+                                 v
+          uncertain / risky?  -> b' cross-model (CODEX second opinion)
+                                 v
+       BLOCKER -> blocked + question queue (you decide)
+       else    -> done -> archived (audit trail preserved)</pre></div>
+  <p class="muted">Every dispatch reports a standard header — which path, which model built it, who reviewed it, the verdict — so you never have to ask.</p>
+</div></section>
+
+<section id="dispatch"><div class="wrap">
+  <h2><span class="n">5</span>Dispatch (deterministic)</h2>
+  <p>When CLAUDE1 dispatches a ticket it follows a fixed 7-step procedure:</p>
+  <table>
+    <thead><tr><th>Step</th><th>Does</th></tr></thead>
+    <tbody>
+      <tr><td>1 · lookup + preflight</td><td>status==todo? deps all done? declared files exist?</td></tr>
+      <tr><td>2 · owner routing</td><td>BUILDER → in-session sub-agent · CODEX → subprocess</td></tr>
+      <tr><td>3 · implement</td><td>implementer does the work in its own context</td></tr>
+      <tr><td>4 · pr-check gate</td><td>secrets · contract sync · scope guard · session log · TDD first-commit</td></tr>
+      <tr><td>5 · review chain</td><td>classify ticket → spawn the needed read-only reviewers (+ a 5% random sample escalates light paths)</td></tr>
+      <tr><td>6 · fan-in + b'</td><td>collect verdicts; on any quantitative trigger, call a CODEX second opinion</td></tr>
+      <tr><td>7 · finalize</td><td>BLOCKER-wins verdict → status + log + standard result header</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><span class="l">Deterministic engine, disciplined wrapper</span><p>The engine (<code>dispatcher.py</code>) is deterministic in code — singleton lock, an HEAD-SHA diff baseline (no <code>git stash</code>), gates, a single retry. The orchestration that wraps it (classification, the b' trigger) is executed by CLAUDE1 to the protocol above.</p></div>
+</div></section>
+
+<section id="modes"><div class="wrap">
+  <h2><span class="n">6</span>Operating modes</h2>
+  <p>One idea moves <strong>exploration → productization → production</strong> as confidence rises. The mode sets the gate posture, enforced by the dispatcher.</p>
+  <table>
+    <thead><tr><th>Gate</th><th>exploration</th><th>productization</th><th>production</th></tr></thead>
+    <tbody>
+      <tr><td>Tests</td><td>optional/report-only</td><td>strategy required</td><td><b>required</b></td></tr>
+      <tr><td>Reviewer</td><td>report-only</td><td>recommended</td><td><b>required · reject blocks</b></td></tr>
+      <tr><td>Security</td><td>secrets/auth only</td><td>risk ID</td><td><b>required when triggered</b></td></tr>
+      <tr><td>Success+failure DOD</td><td>optional</td><td>required</td><td><b>required</b></td></tr>
+    </tbody>
+  </table>
+  <p><strong>Report-only is fail-closed:</strong> a gate is softened only when the mode is exploration/productization <em>and</em> the gate is an explicitly recognized soft gate. Secrets, file-scope violations, destructive actions, and unknown gates <strong>block in every mode</strong>. Production exceptions need a recorded <strong>waiver</strong> (who approved, what risk, follow-up).</p>
+</div></section>
+
+<section id="safety"><div class="wrap">
+  <h2><span class="n">7</span>Safety — structure, not trust</h2>
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-top:0">🔒 Permission-enforced objectivity</h3><p>Reviewers have read-only tools. The planner is blocked by a hook from writing to <code>apps/ packages/ scripts/ tests/</code>. Both are tool-layer facts, not promises.</p></div>
+    <div class="card"><h3 style="margin-top:0">⚖️ Iron Laws (all agents)</h3><p>No prod code without a failing test first · no fix without root-cause · no "done" without fresh evidence · no merge without adversarial review · no scope-reduction vocabulary (grep-enforced).</p></div>
+    <div class="card"><h3 style="margin-top:0">🚪 Always-on safety floor</h3><p>Secret exposure, owner mismatch, file-scope violation, unresolved deps, destructive-with-dirty-tree block regardless of mode and can't be waived normally.</p></div>
+    <div class="card"><h3 style="margin-top:0">🤝 Cross-model net (b')</h3><p>When the reviewer is uncertain, a BLOCKER appears, or the ticket is high-risk, a different vendor gives a second opinion. Free when calm.</p></div>
+  </div>
+  <div class="note warn"><span class="l">Incident → Locked Decision</span><p>When something breaks, the fix becomes an <strong>enforced rule</strong> — a <code>D-XX</code> Locked Decision whose violation is an automatic reviewer BLOCKER — so it can't recur. The rulebook is a record of past incidents, not a wishlist.</p></div>
+</div></section>
+
+<section id="ssot"><div class="wrap">
+  <h2><span class="n">8</span>How LLMs read the OS (SSOT)</h2>
+  <p>All state is files. Agents reload them at session start, so there's no shared chat window to drift. When sources disagree, higher wins:</p>
+  <div class="diagram"><pre>1. PROJECT_STATE.md        milestones, what works now
+2. API_CONTRACT / UI_CONTRACT   interface contracts (above code)
+3. ADR/*                   architecture decisions
+4. tasks/QUEUE.yaml        active tickets
+5. Code
+6. session logs
+7. chat logs               (least reliable)</pre></div>
+  <p>Contract-first: if API/UI behavior changes, the contract doc is updated <strong>before</strong> the code; a reviewer flags a mismatch as a BLOCKER.</p>
+</div></section>
+
+<section id="hostos"><div class="wrap">
+  <h2><span class="n">9</span>The host-OS model</h2>
+  <p>The engine, agents, and doctrine live <strong>once</strong> in a host repo. Each product is an independent git repo under <code>projects/</code>, carrying only its own code and task state.</p>
+  <div class="diagram"><pre>~/dev-os/            host = engine · doctrine · shared .claude (one git repo)
+|-- server/  bin/os3  .claude/  devos/
+`-- projects/        (git-ignored by host — each is its own repo)
+    |-- product-a/   apps/ packages/ + own devos/tasks · PROJECT_STATE · .os3.yaml
+    `-- product-b/   ...</pre></div>
+  <ul>
+    <li><strong>Engine in one place</strong> — improve it once; every project gets it. No sync.</li>
+    <li><strong>Projects independent</strong> — own repo, own state, deployed separately.</li>
+    <li><strong>One entry</strong> — <code>os3 open &lt;name&gt;</code> enters any project with host settings attached.</li>
+  </ul>
+  <p class="muted">Using it as a single project works too — keep <code>devos/</code> as your state and ignore <code>projects/</code>. The host-OS model is how it scales to several products.</p>
+</div></section>
+
+<section id="feedback"><div class="wrap">
+  <h2><span class="n">10</span>The OS-feedback loop</h2>
+  <p>The OS improves itself <strong>demand-pulled</strong>: friction hit during product work is captured with <code>os3 feedback "..."</code> into <code>devos/os-feedback/INBOX.md</code>, reviewed at session start, and converted to tickets during a periodic consolidation pass.</p>
+  <div class="note"><span class="l">Why it's load-bearing</span><p>If OS improvement is supposed to come "from product friction," that friction has to be <em>captured</em> — otherwise it's mentioned once in chat and evaporates. Reactive fixing catches what you hit; a scheduled consolidation pass catches the latent debt you don't trip over.</p></div>
+</div></section>
+
+<section id="cli"><div class="wrap">
+  <h2><span class="n">11</span>Commands</h2>
+  <pre><code>os3 open &lt;project&gt;        enter a project session (injects host settings)
+os3 status / queue       state · active tickets
+os3 approve / reject     approve or reject a pending plan
+os3 dispatch T-XXX       route a ticket to its owner
+os3 pr-check             baseline gates
+os3 archive              move done tickets to ARCHIVE.yaml
+os3 dashboard            local read-only kanban (127.0.0.1:8787)
+os3 feedback "..."       capture OS friction into the inbox</code></pre>
+</div></section>
+
+<section id="glossary"><div class="wrap">
+  <h2><span class="n">12</span>Glossary</h2>
+  <table><tbody>
+    <tr><td><b>SSOT</b></td><td>single source of truth; conflicts resolved by the precedence in §8</td></tr>
+    <tr><td><b>ticket</b></td><td>the unit of work; 1 ticket = 1 PR</td></tr>
+    <tr><td><b>DOD</b></td><td>definition of done — verifiable input+output; success+error pair required</td></tr>
+    <tr><td><b>D-XX</b></td><td>Locked Decision; a violation is an automatic reviewer BLOCKER</td></tr>
+    <tr><td><b>b'</b></td><td>adaptive cross-model second opinion (a different vendor)</td></tr>
+    <tr><td><b>pr-check</b></td><td>stack-agnostic baseline gate bundle</td></tr>
+    <tr><td><b>mode</b></td><td>exploration / productization / production — sets gate posture</td></tr>
+    <tr><td><b>host-OS</b></td><td>one engine in a host repo + independent project repos</td></tr>
+  </tbody></table>
+</div></section>
+
+<div class="foot"><div class="wrap">Vibe Coding OS — Architecture Deep Dive · <a href="deep-dive.ko.html">한국어</a> · <a href="../README.md">README</a><br>The authoritative rules live in <code>devos/AI.md</code>, <code>ETHOS.md</code>, and <code>docs/policy/</code>; this page is an explainer.</div></div>
+</body>
+</html>

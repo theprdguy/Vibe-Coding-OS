@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vibe Coding OS — 아키텍처 심화</title>
+<style>
+  :root{--bg:#0c0f15;--panel:#11151e;--card:#161b26;--card2:#1c2230;--line:#262d3b;--ink:#e7ecf3;--ink2:#a6b1c3;--ink3:#6f7b91;--acc:#6ea8fe;--acc2:#9d7bff;--ok:#34d399;--warn:#fbbf24;--block:#fb7185;--builder:#22d3ee;--reviewer:#fb7185;--designer:#c084fc;--security:#fb923c;--codex:#34d399;--claude1:#fbbf24;--mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo",Roboto,sans-serif}
+  *{box-sizing:border-box}html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.7;font-size:15.5px;-webkit-font-smoothing:antialiased}
+  a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
+  code{font-family:var(--mono);font-size:.85em;background:#080b11;border:1px solid var(--line);border-radius:4px;padding:.08em .38em;color:#bfe3ff}
+  pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:#080b11;border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;color:#ccd6e4}
+  .wrap{max-width:920px;margin:0 auto;padding:0 22px}
+  header.hero{border-bottom:1px solid var(--line);background:radial-gradient(900px 380px at 80% -10%,rgba(157,123,255,.18),transparent 60%),radial-gradient(700px 320px at 5% 0,rgba(110,168,254,.14),transparent 55%),var(--bg)}
+  .hero-in{padding:60px 0 40px}
+  .kick{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);border:1px solid var(--line);background:var(--card);padding:5px 12px;border-radius:999px;margin-bottom:18px}
+  h1{font-size:clamp(28px,5vw,44px);line-height:1.08;margin:0 0 14px;letter-spacing:-.02em;font-weight:800}
+  h1 .g{background:linear-gradient(100deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{font-size:17px;color:var(--ink2);max-width:760px;margin:0 0 18px}
+  .langs{font-size:13px;color:var(--ink3)}.langs a{font-weight:600}
+  nav.toc{position:sticky;top:0;z-index:20;background:rgba(12,15,21,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  nav.toc .wrap{display:flex;gap:2px;overflow-x:auto;padding:9px 22px}
+  nav.toc a{white-space:nowrap;font-size:13px;color:var(--ink3);padding:6px 11px;border-radius:7px}
+  nav.toc a:hover{color:var(--ink);background:var(--card);text-decoration:none}
+  section{padding:42px 0;border-top:1px solid var(--line)}section:first-of-type{border-top:none}
+  h2{font-size:23px;font-weight:800;letter-spacing:-.015em;margin:0 0 10px}
+  h2 .n{font-family:var(--mono);font-size:15px;color:var(--acc2);font-weight:600;margin-right:8px}
+  h3{font-size:17px;font-weight:700;margin:24px 0 8px}
+  p{color:var(--ink2);margin:0 0 13px}ul,ol{color:var(--ink2);padding-left:20px}li{margin:5px 0}
+  strong{color:var(--ink)}.muted{color:var(--ink3)}.lead2{font-size:16px;color:var(--ink)}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--ink);font-weight:700;background:var(--card2);white-space:nowrap}td{color:var(--ink2)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:13px 0}
+  .grid{display:grid;gap:13px}.g2{grid-template-columns:1fr 1fr}
+  @media(max-width:760px){.g2{grid-template-columns:1fr}}
+  .note{border-left:3px solid var(--acc);background:var(--card);border-radius:0 10px 10px 0;padding:12px 16px;margin:14px 0}
+  .note .l{font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--acc);display:block;margin-bottom:4px}
+  .note.warn{border-color:var(--warn)}.note.warn .l{color:var(--warn)}
+  .chip{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);background:#080b11;color:var(--ink2)}
+  .c1{color:var(--claude1)}.b{color:var(--builder)}.cx{color:var(--codex)}.r{color:var(--reviewer)}
+  .agent{border-left:4px solid var(--line);background:var(--card);border-radius:0 12px 12px 0;padding:14px 18px;margin:10px 0}
+  .agent .top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:5px}.agent .nm{font-weight:800;font-size:16px}
+  .agent.c1{border-color:var(--claude1)}.agent.c1 .nm{color:var(--claude1)}
+  .agent.b{border-color:var(--builder)}.agent.b .nm{color:var(--builder)}
+  .agent.cx{border-color:var(--codex)}.agent.cx .nm{color:var(--codex)}
+  .agent.r{border-color:var(--reviewer)}.agent.r .nm{color:var(--reviewer)}
+  .diagram{background:#080b11;border:1px solid var(--line);border-radius:12px;padding:6px 14px;overflow-x:auto}
+  .diagram pre{border:none;background:none;font-size:12px;color:#9fb0c8;white-space:pre}
+  .foot{color:var(--ink3);font-size:13px;padding:36px 0 60px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap hero-in">
+  <span class="kick">● Vibe Coding OS · 아키텍처</span>
+  <h1>이 OS가 <span class="g">실제로 작동하는 법</span></h1>
+  <p class="lead">README가 요약한 부분을 한 단계 더 — 레이어·에이전트·강제 장치까지. "안전하다"가 아니라 <em>왜</em> 안전한지 이해하고 싶은 사람을 위한 글.</p>
+  <p class="langs">🌐 <a href="deep-dive.en.html">English</a> · <strong>한국어</strong> · <a href="../README.md">← README</a></p>
+</div></header>
+
+<nav class="toc"><div class="wrap">
+  <a href="#tl">요약</a><a href="#layers">3층</a><a href="#agents">에이전트</a><a href="#tickets">티켓</a>
+  <a href="#flow">흐름</a><a href="#dispatch">디스패치</a><a href="#modes">모드</a><a href="#safety">안전</a>
+  <a href="#ssot">SSOT</a><a href="#hostos">host-OS</a><a href="#feedback">피드백 루프</a><a href="#cli">명령어</a><a href="#glossary">용어</a>
+</div></nav>
+
+<section id="tl"><div class="wrap">
+  <h2><span class="n">0</span>한 문단</h2>
+  <p class="lead2">Vibe Coding OS는 "AI에게 코드를 시키는 일"을 <strong>감사 가능한 상태 기계</strong>로 바꿉니다. 모든 진실은 <code>devos/</code> 아래 파일에 있고, 일은 <strong>티켓</strong>으로만 움직이며, 누가 무엇을 왜 했는지는 티켓별 전이 이력과 세션 로그에 남습니다.</p>
+  <div class="card"><p style="margin:0;color:var(--ink)">사용자(PM)가 의도를 말한다 → <span class="c1">CLAUDE1</span>이 <strong>티켓</strong>으로 분해하고 빠진 에러·엣지·보안 케이스를 캐묻는다 → 사용자가 plan을 <strong>승인</strong>한다 → 티켓 owner(<span class="b">builder</span> 세션 내 / <span class="cx">CODEX</span> 외부)가 구현한다 → 베이스라인 게이트 + <strong>읽기 전용</strong> 리뷰 보드가 검토한다 → 위험·불확실하면 다른 벤더(<span class="cx">CODEX b'</span>)가 2차 의견 → BLOCKER 없으면 <code>done</code>, 있으면 <code>blocked</code> + 결정 큐.</p></div>
+</div></section>
+
+<section id="layers"><div class="wrap">
+  <h2><span class="n">1</span>3층 구조</h2>
+  <p>세 겹입니다. 위 두 겹은 "무엇을 한다", 맨 아래가 "그걸 못 어기게 한다". 안전성의 대부분이 3층에서 옵니다.</p>
+  <table>
+    <thead><tr><th>층</th><th>구성</th><th>역할</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1 · 진실</strong></td><td>파일 기반 SSOT (<code>devos/</code>)</td><td>프로젝트가 무엇이고 어디까지 왔는지 기억</td></tr>
+      <tr><td><strong>2 · 행위자</strong></td><td>계획가 + 구현가 2 + 읽기전용 리뷰 보드</td><td>계획·구현·검토</td></tr>
+      <tr><td><strong>3 · 강제</strong></td><td>도구 권한 · 훅 · 게이트 · grep · 잠긴 결정</td><td>규칙을 "신뢰"가 아니라 "구조"로 막음</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">핵심 원리: <strong>역할·권한이 분리되고, 권한은 도구 차원에서 제한된다.</strong> 검토자는 Edit/Write 툴이 없어 "고치고 싶어도 못 고친다" — 자기검토 객관성 붕괴가 원천 차단.</p>
+</div></section>
+
+<section id="agents"><div class="wrap">
+  <h2><span class="n">2</span>에이전트</h2>
+  <p>각자 다른 모델·다른 도구를 씁니다. 권한 분리는 선의가 아니라 구조로 강제됩니다.</p>
+  <div class="agent c1"><div class="top"><span class="nm">CLAUDE1 (main)</span><span class="chip">Opus</span><span class="chip">계획·지휘</span></div><p>사용자와 대화. PRD를 티켓으로 분해·조사·라우팅. 코드를 직접 안 쓰고, 결과를 직접 OK 하지 않음 — 리뷰 보드로 넘김.</p></div>
+  <div class="agent b"><div class="top"><span class="nm">builder</span><span class="chip">Sonnet</span><span class="chip">Read·Edit·Write·Bash</span></div><p>세션 내 구현가. 모호·감성 중요한 UI, 새 UX 흐름에 우선. 티켓 files 범위만 수정.</p></div>
+  <div class="agent cx"><div class="top"><span class="nm">CODEX</span><span class="chip">외부 CLI</span><span class="chip">subprocess·sandbox</span></div><p>플랫폼 구현가 — 백엔드/API/데이터/인프라/테스트/마이그레이션 — + 교차모델 2차 의견(b'). 다른 벤더라 Claude의 공통 맹점을 잡음.</p></div>
+  <div class="agent r"><div class="top"><span class="nm">reviewer · designer · security</span><span class="chip" style="color:var(--reviewer)">READ-ONLY</span></div><p>리뷰 보드(Opus/Sonnet). reviewer=적대적 PR 검토(DOD↔테스트·단언·범위·계약). designer=UI/UX(일관성·상태·접근성). security=OWASP+STRIDE, auth/결제/권한/외부입력 자동 발동. <strong>셋 다 Edit/Write 툴 없음.</strong></p></div>
+  <div class="note"><span class="l">읽기전용이 핵심인 이유</span><p>대부분 팀은 "자기 PR 자기 머지 금지"를 <em>정책</em>으로 둡니다. 여기는 <em>권한</em>입니다 — 검토자에게 write 툴이 없어 발견만 하고 조용히 못 고칩니다. 구조적 객관성.</p></div>
+</div></section>
+
+<section id="tickets"><div class="wrap">
+  <h2><span class="n">3</span>티켓 — 일의 단위</h2>
+  <p>모든 구현은 <code>devos/tasks/QUEUE.yaml</code>의 티켓입니다. <strong>1 티켓 = 1 PR.</strong> 자기완결적 — 구현가가 티켓 + SSOT만 읽고 실행 가능해야 합니다.</p>
+  <pre><code>- id: T-AUTH-LOGIN-01
+  status: todo            <span class="muted"># 디스패처는 todo만 집음</span>
+  owner: CODEX            <span class="muted"># BUILDER | CODEX</span>
+  mode: production        <span class="muted"># 게이트 자세 (§6)</span>
+  tdd: required
+  security_audit: true    <span class="muted"># auth/결제/권한 자동 강제</span>
+  goal: |   POST /auth/login
+  dod:
+    - 'valid 자격증명 -> 200 + access/refresh JWT'     <span class="muted"># 성공</span>
+    - 'wrong password -> 401 + "invalid credentials"'  <span class="muted"># 에러(필수)</span>
+  files: [apps/api/src/auth/login.py, tests/test_login.py]
+  verify: |  python3 -m pytest tests/test_login.py -v
+  gates: [pr-check]</code></pre>
+  <p><strong>DOD 규칙:</strong> 성공 DOD가 있으면 <strong>에러 DOD 필수</strong>. 비개발자가 happy path만 적는 빈틈을 시스템이 메우는 장치.</p>
+  <h3>상태 머신 + 감사 추적</h3>
+  <p>상태: <span class="chip">todo</span> <span class="chip">doing</span> <span class="chip">code_ready</span> <span class="chip">needs_pm</span> <span class="chip">done</span> <span class="chip">blocked</span> <span class="chip">parked</span>. 전이마다 <code>actor·reason·timestamp</code>가 <code>_transition_history</code>에 누적 — 티켓이 왜 이 상태인지 채팅이 아니라 파일에서 재구성.</p>
+</div></section>
+
+<section id="flow"><div class="wrap">
+  <h2><span class="n">4</span>흐름</h2>
+  <div class="diagram"><pre>사용자 --PRD--> CLAUDE1
+               | intake 체크리스트 (빠진 에러/엣지/보안 강제 질문)
+               | user journey 추출 -> 티켓 분해
+               v
+       plans/pending/  --사용자: os3 approve-->  tasks/QUEUE.yaml
+                                                   |
+                              os3 dispatch T-XXX   v
+          owner=BUILDER -> 세션 내 sub-agent      owner=CODEX -> subprocess
+                                 | 구현
+                                 v
+          os3 pr-check (시크릿 · 계약 · 범위 · 세션로그 · TDD)
+                                 v
+          리뷰 보드 (reviewer/security/designer — 읽기전용, 티켓 유형별)
+                                 v
+          불확실/위험?  -> b' 교차모델 (CODEX 2차 의견)
+                                 v
+       BLOCKER -> blocked + 질문 큐 (사용자 결정)
+       그 외   -> done -> archived (감사 추적 보존)</pre></div>
+  <p class="muted">모든 디스패치는 표준 결과 헤더(어느 경로·어느 모델이 만들고·누가 검토·verdict)를 출력 — 매번 묻지 않게.</p>
+</div></section>
+
+<section id="dispatch"><div class="wrap">
+  <h2><span class="n">5</span>디스패치 (결정적)</h2>
+  <table>
+    <thead><tr><th>단계</th><th>동작</th></tr></thead>
+    <tbody>
+      <tr><td>1 · lookup+preflight</td><td>status==todo? deps 모두 done? files 존재?</td></tr>
+      <tr><td>2 · owner 라우팅</td><td>BUILDER → 세션 내 / CODEX → subprocess</td></tr>
+      <tr><td>3 · 구현</td><td>구현가가 자기 컨텍스트에서 작업</td></tr>
+      <tr><td>4 · pr-check</td><td>시크릿 · 계약 동기화 · 범위 가드 · 세션 로그 · TDD 첫커밋</td></tr>
+      <tr><td>5 · 리뷰 체인</td><td>티켓 분류 → 필요한 읽기전용 검토자 spawn (+5% 무작위 표본은 가벼운 경로도 승격)</td></tr>
+      <tr><td>6 · fan-in + b'</td><td>verdict 취합; 정량 조건 충족 시 CODEX 2차 의견</td></tr>
+      <tr><td>7 · 최종</td><td>BLOCKER 우선 판정 → 상태 + 로그 + 표준 헤더</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><span class="l">결정적 엔진 + 규율적 래퍼</span><p>엔진(<code>dispatcher.py</code>)은 코드로 결정적 — singleton 락, HEAD-SHA diff 기준선(<code>git stash</code> 안 씀), 게이트, 1회 리트라이. 그 위 오케스트레이션(분류·b' 트리거)은 CLAUDE1이 위 프로토콜대로 실행.</p></div>
+</div></section>
+
+<section id="modes"><div class="wrap">
+  <h2><span class="n">6</span>동작 모드</h2>
+  <p>하나의 아이디어가 신뢰도가 오르며 <strong>exploration → productization → production</strong>으로 이동. 모드가 게이트 자세를 정하고 디스패처가 강제합니다.</p>
+  <table>
+    <thead><tr><th>게이트</th><th>exploration</th><th>productization</th><th>production</th></tr></thead>
+    <tbody>
+      <tr><td>Tests</td><td>선택/report-only</td><td>전략 필수</td><td><b>필수</b></td></tr>
+      <tr><td>Reviewer</td><td>report-only</td><td>권장</td><td><b>필수 · reject 차단</b></td></tr>
+      <tr><td>Security</td><td>시크릿/auth만</td><td>리스크 식별</td><td><b>트리거 시 필수</b></td></tr>
+      <tr><td>성공+실패 DOD</td><td>선택</td><td>필수</td><td><b>필수</b></td></tr>
+    </tbody>
+  </table>
+  <p><strong>Report-only는 fail-closed:</strong> 모드가 exploration/productization <em>이고</em> 명시적 soft 게이트일 때만 완화. 시크릿·범위 위반·destructive·미인식 게이트는 <strong>모든 모드에서 차단</strong>. Production 예외는 기록된 <strong>웨이버</strong>(승인자·위험·follow-up) 필요.</p>
+</div></section>
+
+<section id="safety"><div class="wrap">
+  <h2><span class="n">7</span>안전 — 신뢰가 아니라 구조</h2>
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-top:0">🔒 권한으로 강제된 객관성</h3><p>검토자는 읽기전용 도구. 계획가는 훅이 <code>apps/ packages/ scripts/ tests/</code> 쓰기를 차단. 둘 다 약속이 아니라 도구 차원의 사실.</p></div>
+    <div class="card"><h3 style="margin-top:0">⚖️ Iron Laws (전 에이전트)</h3><p>실패 테스트 없이 prod 코드 없다 · 근본원인 없이 수정 없다 · 새 증거 없이 "완료" 없다 · 적대적 검토 없이 머지 없다 · 범위축소 어휘 없다(grep 강제).</p></div>
+    <div class="card"><h3 style="margin-top:0">🚪 항상 켜진 안전 바닥</h3><p>시크릿 노출·owner mismatch·범위 위반·미해결 deps·dirty-tree destructive는 모드 무관 차단, 일반 웨이버로 우회 불가.</p></div>
+    <div class="card"><h3 style="margin-top:0">🤝 교차모델 안전망(b')</h3><p>검토자 불확실·BLOCKER·고위험 티켓이면 다른 벤더가 2차 의견. 평소엔 비용 0.</p></div>
+  </div>
+  <div class="note warn"><span class="l">사고 → 잠긴 결정</span><p>무언가 부서지면 그 수정은 <strong>강제 규칙</strong>이 됩니다 — 위반이 자동 reviewer BLOCKER인 <code>D-XX</code> Locked Decision. 그래서 재발 못 함. 규칙집은 위시리스트가 아니라 과거 사고의 기록.</p></div>
+</div></section>
+
+<section id="ssot"><div class="wrap">
+  <h2><span class="n">8</span>LLM이 OS를 읽는 법 (SSOT)</h2>
+  <p>모든 상태가 파일. 세션 시작 시 다시 읽으므로 공유 채팅창 드리프트가 없습니다. 충돌 시 위가 강함:</p>
+  <div class="diagram"><pre>1. PROJECT_STATE.md        마일스톤·현재 동작
+2. API_CONTRACT / UI_CONTRACT   인터페이스 계약 (코드보다 우선)
+3. ADR/*                   아키텍처 결정
+4. tasks/QUEUE.yaml        활성 티켓
+5. 코드
+6. 세션 로그
+7. 채팅 로그               (가장 안 믿음)</pre></div>
+  <p>Contract-first: API/UI 동작 변경 시 계약 문서를 <strong>먼저</strong> 고침; 불일치는 reviewer가 BLOCKER.</p>
+</div></section>
+
+<section id="hostos"><div class="wrap">
+  <h2><span class="n">9</span>host-OS 모델</h2>
+  <p>엔진·에이전트·도리는 호스트 레포에 <strong>한 번만</strong> 존재. 각 제품은 <code>projects/</code> 아래 독립 git 레포로, 자기 코드와 task 상태만 보유.</p>
+  <div class="diagram"><pre>~/dev-os/            호스트 = 엔진 · 도리 · 공유 .claude (git 1개)
+|-- server/  bin/os3  .claude/  devos/
+`-- projects/        (호스트가 git-ignore — 각자 독립 레포)
+    |-- product-a/   apps/ packages/ + 자기 devos/tasks · PROJECT_STATE · .os3.yaml
+    `-- product-b/   ...</pre></div>
+  <ul>
+    <li><strong>엔진은 1곳</strong> — 고치면 전 프로젝트 적용. sync 없음.</li>
+    <li><strong>프로젝트는 독립</strong> — 자기 레포·상태, 따로 배포.</li>
+    <li><strong>진입은 하나</strong> — <code>os3 open &lt;name&gt;</code>이 호스트 설정을 달고 진입.</li>
+  </ul>
+  <p class="muted">단일 프로젝트로 써도 됨 — <code>devos/</code>를 상태로 쓰고 <code>projects/</code> 무시. host-OS는 여러 제품으로 확장하는 방식.</p>
+</div></section>
+
+<section id="feedback"><div class="wrap">
+  <h2><span class="n">10</span>OS-feedback 루프</h2>
+  <p>OS는 자기를 <strong>demand-pulled</strong>로 개선합니다: 제품 작업 중 마찰을 <code>os3 feedback "..."</code>로 <code>devos/os-feedback/INBOX.md</code>에 포착하고, 세션 시작 시 검토하고, 주기적 consolidation 패스에서 티켓으로 전환.</p>
+  <div class="note"><span class="l">왜 load-bearing인가</span><p>OS 개선이 "제품 마찰에서" 온다면 그 마찰을 <em>포착</em>해야 합니다 — 안 그러면 채팅에서 한 번 말하고 증발. 반응적 수정은 부딪힌 것만 잡고, 주기적 consolidation은 안 밟는 잠재 부채를 잡습니다.</p></div>
+</div></section>
+
+<section id="cli"><div class="wrap">
+  <h2><span class="n">11</span>명령어</h2>
+  <pre><code>os3 open &lt;project&gt;        프로젝트 세션 진입 (호스트 설정 주입)
+os3 status / queue       상태 · 활성 티켓
+os3 approve / reject     플랜 승인·반려
+os3 dispatch T-XXX       티켓을 owner로 라우팅
+os3 pr-check             베이스라인 게이트
+os3 archive              done 티켓 → ARCHIVE.yaml
+os3 dashboard            로컬 읽기전용 칸반 (127.0.0.1:8787)
+os3 feedback "..."       OS 마찰을 INBOX에 포착</code></pre>
+</div></section>
+
+<section id="glossary"><div class="wrap">
+  <h2><span class="n">12</span>용어</h2>
+  <table><tbody>
+    <tr><td><b>SSOT</b></td><td>단일 진실 소스; 충돌은 §8 우선순위로 판정</td></tr>
+    <tr><td><b>티켓</b></td><td>일의 단위; 1 티켓 = 1 PR</td></tr>
+    <tr><td><b>DOD</b></td><td>완료 정의 — 입력+기대출력 검증가능; 성공+에러 쌍 필수</td></tr>
+    <tr><td><b>D-XX</b></td><td>Locked Decision; 위반은 자동 reviewer BLOCKER</td></tr>
+    <tr><td><b>b'</b></td><td>적응형 교차모델 2차 의견 (다른 벤더)</td></tr>
+    <tr><td><b>pr-check</b></td><td>스택 무관 베이스라인 게이트 묶음</td></tr>
+    <tr><td><b>mode</b></td><td>exploration / productization / production — 게이트 자세</td></tr>
+    <tr><td><b>host-OS</b></td><td>호스트 레포의 엔진 1 + 독립 프로젝트 레포들</td></tr>
+  </tbody></table>
+</div></section>
+
+<div class="foot"><div class="wrap">Vibe Coding OS — 아키텍처 심화 · <a href="deep-dive.en.html">English</a> · <a href="../README.md">README</a><br>권위 있는 규칙은 <code>devos/AI.md</code>, <code>ETHOS.md</code>, <code>docs/policy/</code>에 있으며, 이 페이지는 해설입니다.</div></div>
+</body>
+</html>
