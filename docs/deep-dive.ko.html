@@ -62,7 +62,8 @@
 <nav class="toc"><div class="wrap">
   <a href="#tl">요약</a><a href="#layers">3층</a><a href="#agents">에이전트</a><a href="#tickets">티켓</a>
   <a href="#flow">흐름</a><a href="#dispatch">디스패치</a><a href="#modes">모드</a><a href="#safety">안전</a>
-  <a href="#ssot">SSOT</a><a href="#hostos">host-OS</a><a href="#feedback">피드백 루프</a><a href="#cli">명령어</a><a href="#glossary">용어</a>
+  <a href="#ssot">SSOT</a><a href="#hostos">host-OS</a><a href="#feedback">피드백 루프</a><a href="#cli">명령어</a>
+  <a href="#engine">엔진 내부</a><a href="#concurrency">동시성</a><a href="#memory">기억</a><a href="#problems">문제 관리</a><a href="#policy">정책</a><a href="#metrics">측정</a><a href="#map">파일 지도</a><a href="#glossary">용어</a>
 </div></nav>
 
 <section id="tl"><div class="wrap">
@@ -229,8 +230,177 @@ os3 dashboard            로컬 읽기전용 칸반 (127.0.0.1:8787)
 os3 feedback "..."       OS 마찰을 INBOX에 포착</code></pre>
 </div></section>
 
+<section id="engine"><div class="wrap">
+  <h2><span class="n">12</span>엔진 내부 — 락 · 스냅샷 · 리트라이</h2>
+  <p>§5가 "디스패치가 무슨 단계를 밟나"였다면, 여기는 <em>엔진이 그 단계를 어떻게 안전하게 실행하나</em>입니다. 핵심 셋: <strong>동시 실행 방지 · 변경 기준선 고정 · 실패 시 1회 리트라이.</strong> 빠진 것에 주목 — <strong>git을 망가뜨리는 rollback이 없습니다</strong>. 복구는 설계상 읽기 전용입니다.</p>
+  <h3>Singleton 락 — 프로젝트당 디스패처 둘 금지</h3>
+  <p>디스패치는 <code>~/.os3/dispatcher.&lt;project&gt;.pid</code>에 <strong>원자적 파일 생성</strong>(<code>O_CREAT|O_EXCL</code>)으로 락을 잡습니다. 두 번째 프로세스는 즉시 거부됩니다. <strong>stale</strong> 락(기록된 PID가 죽음 — <code>os.kill(pid,0)</code>로 확인)은 <em>자동 삭제하지 않고 알리기만</em> 합니다 — 진짜 실행 중인 디스패치를 죽이지 않으려고. 락 해제는 3중(<code>__exit__</code> · <code>atexit</code> · SIGINT/SIGTERM)이라 비정상 종료에도 정리됩니다. <code>fcntl</code> 없는 플랫폼이면 락을 건너뛰고 경고만(단일 사용자 가정).</p>
+  <h3>스냅샷 — diff 기준선은 SHA 하나</h3>
+  <div class="note"><span class="l">왜 stash가 아니라 SHA인가</span><p>구현 직전 엔진은 <code>git rev-parse HEAD</code> — <strong>SHA 문자열 하나</strong> — 를 이 디스패치의 diff 기준선으로 박습니다. 게이트(scope guard · contract sync · TDD first-commit)는 "이 SHA 이후 무엇이 바뀌었나"를 봅니다. working tree는 <strong>전혀 건드리지 않습니다</strong>: stash도, worktree 교체도 없습니다. 캡처가 실패하면 디스패치를 <strong>아예 시작하지 않습니다</strong> — 기준선 없이 게이트를 돌리지 않습니다.</p></div>
+  <h3>게이트 실패 → 정확히 1회 리트라이</h3>
+  <p>게이트 실패가 곧바로 block은 아닙니다. 엔진은 실패를 <strong>post-fail hook</strong>(stderr 패턴)과 매칭하고, 매칭되면 hook을 실행한 뒤 <strong><code>hook.retry</code>가 켜진 경우에만</strong> 게이트를 <strong>1회</strong> 재실행합니다. 통과 → <code>done</code>, 여전히 실패 → <code>blocked</code>. 무한 루프가 아니라 정확히 1회 — "알려진 일시적 실패"(예: 환경 셋업 누락) 교정용입니다.</p>
+  <p class="muted"><strong>self-block short-circuit:</strong> 구현가가 핸드오프에서 <code>Block: Q-XXX</code>를 반환하면 엔진은 즉시 <code>blocked</code> 처리하고 게이트를 건너뜁니다 — 헛된 리뷰 비용 없음. CODEX 쿼터 소진은 subprocess stderr에서 감지해 기록 → 소진된 쿼터에 헛된 재시도를 던지지 않습니다.</p>
+</div></section>
+
+<section id="concurrency"><div class="wrap">
+  <h2><span class="n">13</span>SSOT 동시성 — 파일 락 · 원자적 쓰기</h2>
+  <p>QUEUE/ARCHIVE는 평범한 YAML이라 <strong>동시 쓰기 = 손상</strong> 위험이 있습니다. 상태 레이어가 모든 쓰기를 advisory 파일 락 + 원자적 교체로 막습니다.</p>
+  <ul>
+    <li><strong>파일 락</strong> — <code>.&lt;name&gt;.lock</code>를 <code>fcntl.flock(LOCK_EX|LOCK_NB)</code>(배타·논블로킹)로. 경합 시 0.1s 폴링, 30s 타임아웃이면 hang 대신 에러. <code>fcntl</code> 없는 플랫폼용 명시적 env 탈출구 존재(경고: race 가능).</li>
+    <li><strong>원자적 쓰기</strong> — 모든 쓰기는 임시 파일에 먼저 쓰고 <code>os.replace()</code>(POSIX 원자적 rename) — 반쪽짜리 파일을 읽는 일이 없습니다.</li>
+  </ul>
+  <h3>세 개의 분리된 락 — 디스패치와 archive 공존</h3>
+  <table>
+    <thead><tr><th>락 파일</th><th>보호 대상</th><th>핵심</th></tr></thead>
+    <tbody>
+      <tr><td><code>.QUEUE.yaml.lock</code></td><td>QUEUE 쓰기</td><td>상태 전이 시 배타</td></tr>
+      <tr><td><code>.archive.lock</code></td><td>디스패처 sentinel</td><td>"이관 진행 중" 표시 → archive 도중 dispatch 거부</td></tr>
+      <tr><td><code>.archive-index.lock</code></td><td>archive-index 재빌드</td><td>sentinel과 <strong>별개</strong>라 재인덱싱이 dispatch를 막지 않음</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">분리는 의도된 설계: archive <em>이관</em>은 dispatch를 멈춰야 하지만 인덱스 <em>재빌드</em>는 그럴 필요가 없습니다. 그 인덱스가 <code>os3 lookup</code>이 archive된 티켓을 찾게 해주고, 인덱스도 원자적으로 재빌드됩니다.</p>
+</div></section>
+
+<section id="memory"><div class="wrap">
+  <h2><span class="n">14</span>세션 경계의 기억</h2>
+  <p>AI 세션은 컨텍스트가 날아갑니다. OS는 <strong>시작/종료 프로토콜</strong>로 기억을 파일에 고정해, load-bearing한 것이 채팅창에만 살지 않게 합니다.</p>
+  <h3>Boot read map — 한 번만 읽기</h3>
+  <p>세션 시작은 각 SSOT 파일을 <strong>1회</strong>만 읽고 머릿속에 요약을 유지합니다. 같은 파일을 (offset 바꿔) 다시 읽으면 <em>캐싱 실패</em> 신호로 봅니다. sub-agent는 토큰 절약을 위해 <strong>슬림 코어</strong>로 부팅하고, 전문 헌법은 필요할 때만 읽습니다.</p>
+  <h3>세션 종료 — 8축 회고</h3>
+  <p>종료는 "오늘 한 일"이 아닙니다. <strong>8개 카테고리</strong>를 의무적으로 자문합니다 — 없어도 "없음"이라고 답해야 합니다:</p>
+  <table>
+    <thead><tr><th>#</th><th>자가질문</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>user↔AI 협업 마찰 (같은 지시 반복? 의도 오해?)</td></tr>
+      <tr><td>2</td><td>DB/data 위험 (schema drift, 마이그레이션 누락, 데이터 손실)</td></tr>
+      <tr><td>3</td><td>dev 환경 (token TTL, redirect loop, port 충돌, env 누락)</td></tr>
+      <tr><td>4</td><td>잔재 파일 / .gitignore (임시파일, sentinel, working-tree 잔재)</td></tr>
+      <tr><td>5</td><td>분기 / 미뤄둔 PM 결정 (미해결 결정, unblock 누락)</td></tr>
+      <tr><td>6</td><td>기억 — 이번에 본 패턴이 장기 memory 자격인가?</td></tr>
+      <tr><td>7</td><td>vendor 정보 — 가정하지 않고 <code>--help</code>로 검증했나?</td></tr>
+      <tr><td>8</td><td>보안 — 평문 secret, API key, OAuth flow, OWASP 신호</td></tr>
+    </tbody>
+  </table>
+  <p>회고 헤더엔 <code>revision_delta</code>(첫 초안이 빠뜨린 항목 수 vs 최종)를 기록합니다. <strong>게이트가 아니라 메트릭</strong> — 자기 누락률을 스스로 보게 만드는 압력.</p>
+  <div class="note"><span class="l">두 갈래의 기억</span><p><strong>프로젝트 상태</strong>(공유·git 추적)는 <code>devos/</code>에, <strong>사용자/협업 선호</strong>(개인·git 밖)는 harness의 memory에 갑니다. 규칙은 같은 사실을 양쪽에 중복하지 않는 것. 별도의 append-only <code>learnings.jsonl</code>은 재사용 가능한 인사이트를 로깅합니다. 장기 memory는 트리거에서만 — 사용자 교정, 명시된 선호, 검증된 라이브러리 quirk, ≥2회 반복 패턴 — 코드/git에서 쉽게 재발견되는 건 안 적습니다.</p></div>
+</div></section>
+
+<section id="problems"><div class="wrap">
+  <h2><span class="n">15</span>문제 관리 — 결정 · 막힘 · 인바운드 이슈</h2>
+  <p>문제는 종류별로 <strong>다른 채널</strong>에 들어갑니다. 채팅에서 "어 이거 문제네"로 끝나지 않고 파일에 박제됩니다.</p>
+  <h3>① Question Queue (Q-XXX) — 결정이 필요한 것</h3>
+  <p>막힌 티켓이나 아키텍처 갈림길은 <code>questions/QUEUE.md</code>에 표준 형식으로 적습니다. 핵심은 <strong>Options + Recommendation + Default</strong> — 무응답이어도 Default로 진행 가능하게.</p>
+  <pre><code>## Q-0XX: &lt;짧은 제목&gt;
+Status: [open] | [resolved] | [parked]
+Blocking: yes | no
+**Options**: A) … B) … C) …
+**Recommendation**: A + B — &lt;이유&gt;
+**Default (if no response)**: A
+**Resolution (date, actor)**: …</code></pre>
+  <p>세션 시작 시 계획가가 모든 <code>[open]</code>을 모아 triage합니다(Blocking 우선, 상한 있음; 오늘 티켓에 영향 없는 non-blocking은 묻지 않고 Default 가정).</p>
+  <h3>② blocked — 진행이 멈춘 것</h3>
+  <p>티켓 자체에 <code>_blocked_reason</code> + <code>_blocked_log</code> + 전이 이력으로 기록(§3). 막힘은 보통 <em>엔진</em> 자동 정지(preflight·deps·게이트 실패)거나 검토 BLOCKER이며, 둘 다 대개 Q-XXX로 사용자 결정을 요청합니다.</p>
+  <h3>③ 인바운드 이슈 (I- / P- / A-)</h3>
+  <p>같은 호스트를 쓰는 sister 프로젝트가 발견한 OS 차원 결함을 인계합니다: <strong>I</strong> = 버그, <strong>P</strong> = 제안/DX 개선, <strong>A</strong> = 아키텍처/감사. 처리: cross-reference(이미 고쳐졌나) → 다축 분석 → 같은 근본원인 항목 묶기 → 몇 개 결정 포인트로 추상화 → plan.</p>
+  <div class="note"><span class="l">즉흥 수정이 아니라 추상화</span><p>N건의 보고는 <em>한 줌</em>의 메커니즘 fix가 되지 N티켓이 되지 않습니다 — 같은 근본원인 항목은 묶입니다. 그리고 <em>처리 자체가</em> 반복되면 그게 다시 OS 메커니즘이 됩니다(인바운드 템플릿이 그런 산물).</p></div>
+</div></section>
+
+<section id="policy"><div class="wrap">
+  <h2><span class="n">16</span>정책 심화 — 웨이버 · hard/soft · 역할 권한</h2>
+  <h3>Waiver (W-XXX) — 예외는 기록되어야 통과한다</h3>
+  <p>Production hard policy 예외는 "그냥 넘어가기"가 안 됩니다. <strong>inline 웨이버 레코드 + PM 승인</strong>이 있어야 합니다. 없으면 작업은 <code>done</code>이 아니라 <code>needs_pm</code>/<code>blocked</code>에 머뭅니다.</p>
+  <pre><code>waivers:
+  - id: W-YYYYMMDD-NNN
+    policy: required_visual_review | security_review | test_failure | coverage | reviewer_request_changes
+    requested_by: CODEX
+    approved_by: PM            <span class="muted"># 반드시 PM</span>
+    decision: accept_with_waiver
+    reason: &lt;위험을 이해하고 받아들인 이유&gt;
+    risk_accepted: &lt;구체적 잔여 위험&gt;
+    expires: never | YYYY-MM-DD | after_ticket
+    follow_up_ticket: T-YYY | none</code></pre>
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-top:0">웨이버 가능 (PM 임시 통과)</h3><ul style="margin:0"><li>non-critical 테스트 실패 (follow-up 존재)</li><li>주관적 visual / 취향 트레이드오프</li><li>coverage 부족 (위험 수용 + follow-up)</li></ul></div>
+    <div class="card"><h3 style="margin-top:0">웨이버 불가 (절대)</h3><ul style="margin:0"><li>secret 노출 · owner mismatch · scope 위반</li><li>미해결 deps · dirty-tree destructive 위험</li><li>remediation 없는 auth/payment/privacy/data-loss</li></ul></div>
+  </div>
+  <h3>Hard vs Soft 정책 클래스</h3>
+  <p><strong>Hard</strong> = Production에서 fail-closed: 중복 id, 미해결 deps, owner mismatch, scope 위반, secret, required 테스트 실패, required 리뷰 reject, UI visual 누락, 웨이버 누락. <strong>Soft</strong> = 경고 / cleanup / follow-up 티켓: 파일 길이 budget, 복잡도, 문서 drift, 스타일, 선택적 리팩터.</p>
+  <h3>역할 · 권한 매트릭스</h3>
+  <p>도구 권한(§7)은 <em>에이전트별</em>이고, 그 위에 <em>역할별</em> 의사결정 경계가 있습니다. 한 에이전트가 여러 역할을 겸할 수 있습니다.</p>
+  <table>
+    <thead><tr><th>역할</th><th>결정 가능</th><th>차단 가능</th><th>하면 안 되는 것</th></tr></thead>
+    <tbody>
+      <tr><td><strong>PM</strong> (사람)</td><td>제품 방향 · 우선순위 · 취향 · 최종 수용 · 웨이버 승인</td><td>방향/위험 수용 질문</td><td>저수준 코드/테스트/게이트 출력을 강제로 검증당함</td></tr>
+      <tr><td>Product Planner</td><td>user outcome · open question · acceptance · 티켓 분해 초안</td><td>요구 모호 시 productization readiness</td><td>PM 승인 없이 비가역 제품 결정</td></tr>
+      <tr><td>Tech Planner</td><td>기술 옵션 · 리스크 통제 · API/data/test/보안 권고</td><td>아키텍처/리스크 불명확 시 production readiness</td><td>근거 없는 큰 아키텍처 결정</td></tr>
+      <tr><td class="b">Builder</td><td>티켓 scope 내 구현 세부</td><td>scope/deps/구현 위험 발견 시 self-block</td><td>scope 밖 수정 · 리뷰 우회 · production 단독 <code>done</code></td></tr>
+      <tr><td class="cx">Codex</td><td>infra · test · script · migration · 실패분석 · 코드리뷰</td><td>테스트/게이트 실패 · scope/rollback 위험</td><td>제품 방향 단독 결정 · 조용히 scope 확장</td></tr>
+      <tr><td class="r">Reviewer</td><td>요구 적합 · DOD · 테스트 충분 verdict</td><td>DOD 누락 · 약한 테스트 · 유지보수 퇴행</td><td>같은 패스에서 자기 finding을 조용히 수정</td></tr>
+      <tr><td>Security</td><td>secret/auth/권한/privacy/외부입력 verdict</td><td>고위험 이슈 · required 보안리뷰 누락</td><td>deterministic 검사 있는데 free-form 판단에만 의존</td></tr>
+      <tr><td>Visual</td><td>렌더된 UI 결과 verdict</td><td>객관적 깨짐(blank/clip/overlap/responsive)</td><td>코드/보안/전략의 최종 승인자</td></tr>
+      <tr><td>Dispatcher</td><td>routing · deps · owner/scope · 게이트 · 상태전이 · archive</td><td>hard policy 위반 · required 게이트/웨이버 누락</td><td>주관적 제품/디자인 판단</td></tr>
+    </tbody>
+  </table>
+  <p class="muted"><strong>원칙:</strong> PM은 raw policy noise를 해석하지 않습니다 — 시스템이 무엇이 <em>block</em>, 무엇이 <em>recommendation</em>, 무엇이 <em>PM 판단</em>인지 요약해 마지막 것만 올립니다.</p>
+</div></section>
+
+<section id="metrics"><div class="wrap">
+  <h2><span class="n">17</span>측정 — 비용 · 점수 카드 · paired-run</h2>
+  <h3>비용 채널</h3>
+  <p><code>os3 cost-report</code>가 디스패치 로그를 세 채널로 집계해 비용을 추정합니다: <strong>C1</strong> interactive(reviewer / security / designer), <strong>C2</strong> agent-SDK(더 싼 배치 리뷰), <strong>C0</strong> 외부 CODEX(구현 + b' 2차 의견). 한 채널이 크레딧의 ~80%를 넘으면 경고 — "어느 모델에 얼마나 리뷰를 시켰나"를 돈으로 환산.</p>
+  <h3>4축 점수 카드 (격주)</h3>
+  <p>Phase ship 직후 + 격주로 4축을 기록해 균형을 감시합니다. 각 축의 ship/위험 임계:</p>
+  <table>
+    <thead><tr><th>축</th><th>핵심 임계</th></tr></thead>
+    <tbody>
+      <tr><td>Quality</td><td>findings_recall ≥ 90% · <strong>blocker_misses = 0</strong> · mutation 생존자 ≤ 5% · user_acceptance ≥ 80%</td></tr>
+      <tr><td>Speed</td><td>티켓 wallclock · baseline 대비 delta(음수=빨라짐)</td></tr>
+      <tr><td>Cost</td><td>C1/C2/C0 추정 + 합계 · baseline 대비 delta(음수=절감)</td></tr>
+      <tr><td>Security</td><td>critical 오분류 = 0 · <strong>b' escalation 10–25%</strong> · critical full-chain = 100%</td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><span class="l">vetokill — 즉시 제동</span><p>다음 중 하나라도 참이면 자동 제동: <strong>blocker_miss ≥ 1</strong>(rollback) · critical 오분류 ≥ 1 · 속도 −20% · cost 증가. verdict는 <code>continue / pause / rollback</code> — 최적화 전체에 대한 계측된 회로차단기.</p></div>
+  <h3>paired-run — 모델 교체 전 실측</h3>
+  <p>구현가를 <strong>더 싼 모델</strong>로 옮기기 전에, 같은 티켓을 <em>두 모델</em>로 돌려 품질+비용을 실측합니다. default 모델은 임계 충족 시에만 바뀝니다(예: ≥3티켓 · recall ≥ 90% · BLOCKER 누락 0 · acceptance 유지). 즉 "싼 모델로 갈아타기"가 감이 아니라 <strong>실측</strong>으로 일어납니다.</p>
+  <p class="muted"><strong>토큰 규율</strong>이 함께 갑니다: QUEUE↔ARCHIVE 분리로 활성 파일을 작게, sub-agent는 슬림 코어로 부팅, 디스패치가 그 코어를 prompt에 인라인해 read 라운드트립 생략, context-monitor 훅이 잔량 ~35% / ~25%에서 경고해 thrashing 전에 핸드오프합니다.</p>
+</div></section>
+
+<section id="map"><div class="wrap">
+  <h2><span class="n">18</span>파일 지도</h2>
+  <p>호스트 레포에서 무엇이 어디에 있나 (generic 트리):</p>
+  <div class="diagram"><pre>~/dev-os/                        # 호스트 = 엔진 · 도리 · 공유 .claude (git 1개)
+├── bin/os3                      # 단일 진입점
+├── server/                      # 엔진 (Python)
+│   ├── dispatcher.py            # 라우팅+실행의 심장
+│   ├── ssot.py                  # QUEUE / 상태 / SSOT 읽기+쓰기
+│   ├── cli.py                   # os3 서브커맨드 레지스트리
+│   ├── dashboard.py             # 로컬 읽기전용 칸반 (:8787)
+│   └── gemini_dispatcher.py     # 시각 검토 채널
+├── .claude/
+│   ├── CLAUDE.md                # 계획가 운영 룰 (devos/AI.md import)
+│   ├── agents/{builder,reviewer,designer,security}.md
+│   ├── hooks/{guard-no-impl.sh, context-monitor.js}
+│   └── settings.json            # 훅 · MCP · statusline
+├── devos/
+│   ├── AI.md / AI-core.md       # 헌법 / 슬림 부팅본
+│   ├── ETHOS.md                 # 최종 판단 기준 (Iron Laws)
+│   ├── CONTEXT.md               # TL;DR + Locked Decisions (D-XX)
+│   ├── PROJECT_STATE.md         # 마일스톤 / 진행 SSOT
+│   ├── tasks/{QUEUE,ARCHIVE,ARCHIVE-INDEX}.yaml + 락들
+│   ├── questions/QUEUE.md       # Q-XXX 결정 큐
+│   ├── issues/                  # I-/P-/A- 인바운드 + handoff
+│   ├── plans/pending/           # 승인 대기 plan
+│   ├── prompts/{claude,common,codex}/
+│   ├── logs/{date}-{agent}.md   # 세션 로그 (+ learnings, dispatch, gemini)
+│   └── docs/{ADR,API_CONTRACT,UI_CONTRACT,policy/,...}
+└── projects/                    # 호스트 git이 ignore — 각자 독립 레포
+    ├── product-a/   apps/ packages/ + 자기 QUEUE / PROJECT_STATE / .os3.yaml
+    └── product-b/   ...</pre></div>
+  <p class="muted">호스트 레포는 git 1개; <code>projects/</code> 아래 각 제품은 독립이고 호스트가 ignore합니다(§9). 엔진 하나, 제품 여럿.</p>
+</div></section>
+
 <section id="glossary"><div class="wrap">
-  <h2><span class="n">12</span>용어</h2>
+  <h2><span class="n">19</span>용어</h2>
   <table><tbody>
     <tr><td><b>SSOT</b></td><td>단일 진실 소스; 충돌은 §8 우선순위로 판정</td></tr>
     <tr><td><b>티켓</b></td><td>일의 단위; 1 티켓 = 1 PR</td></tr>
@@ -240,6 +410,10 @@ os3 feedback "..."       OS 마찰을 INBOX에 포착</code></pre>
     <tr><td><b>pr-check</b></td><td>스택 무관 베이스라인 게이트 묶음</td></tr>
     <tr><td><b>mode</b></td><td>exploration / productization / production — 게이트 자세</td></tr>
     <tr><td><b>host-OS</b></td><td>호스트 레포의 엔진 1 + 독립 프로젝트 레포들</td></tr>
+    <tr><td><b>Q-XXX</b></td><td>질문 큐 항목; Options + Recommendation + Default로 무응답에도 진행</td></tr>
+    <tr><td><b>W-XXX</b></td><td>웨이버; 기록되고 PM 승인된 production hard policy 예외</td></tr>
+    <tr><td><b>paired-run</b></td><td>같은 티켓을 두 모델로 — default를 더 싼 모델로 바꾸기 전 실측</td></tr>
+    <tr><td><b>vetokill</b></td><td>점수 카드 임계 위반 시 자동 제동(continue/pause/rollback)</td></tr>
   </tbody></table>
 </div></section>
 

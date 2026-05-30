@@ -62,7 +62,8 @@
 <nav class="toc"><div class="wrap">
   <a href="#tl">Summary</a><a href="#layers">3 layers</a><a href="#agents">Agents</a><a href="#tickets">Tickets</a>
   <a href="#flow">Flow</a><a href="#dispatch">Dispatch</a><a href="#modes">Modes</a><a href="#safety">Safety</a>
-  <a href="#ssot">SSOT</a><a href="#hostos">Host-OS</a><a href="#feedback">Feedback loop</a><a href="#cli">Commands</a><a href="#glossary">Glossary</a>
+  <a href="#ssot">SSOT</a><a href="#hostos">Host-OS</a><a href="#feedback">Feedback loop</a><a href="#cli">Commands</a>
+  <a href="#engine">Engine</a><a href="#concurrency">Concurrency</a><a href="#memory">Memory</a><a href="#problems">Problems</a><a href="#policy">Policy</a><a href="#metrics">Metrics</a><a href="#map">File map</a><a href="#glossary">Glossary</a>
 </div></nav>
 
 <section id="tl"><div class="wrap">
@@ -230,8 +231,177 @@ os3 dashboard            local read-only kanban (127.0.0.1:8787)
 os3 feedback "..."       capture OS friction into the inbox</code></pre>
 </div></section>
 
+<section id="engine"><div class="wrap">
+  <h2><span class="n">12</span>Engine internals — lock · snapshot · retry</h2>
+  <p>§5 was "what steps the dispatch runs." This is <em>how the engine runs them safely</em>. Three pieces: <strong>no double-run · a fixed change-baseline · one retry on failure.</strong> Note what's absent — there is <strong>no git-mutating rollback</strong>; recovery is read-only by design.</p>
+  <h3>Singleton lock — no two dispatchers per project</h3>
+  <p>A dispatch acquires a lock by <strong>atomic file creation</strong> (<code>O_CREAT|O_EXCL</code>) at <code>~/.os3/dispatcher.&lt;project&gt;.pid</code>. A second process is refused immediately. A <strong>stale</strong> lock (the recorded PID is dead, checked via <code>os.kill(pid,0)</code>) is <em>reported, not auto-deleted</em> — so a genuinely running dispatch is never killed. The lock is released three ways (<code>__exit__</code> · <code>atexit</code> · SIGINT/SIGTERM) so abnormal exits still clean up. On a platform without <code>fcntl</code> it skips the lock and warns (single-user assumption).</p>
+  <h3>Snapshot — the diff baseline is one SHA</h3>
+  <div class="note"><span class="l">Why a SHA, not <code>git stash</code></span><p>Just before implementation the engine records <code>git rev-parse HEAD</code> — <strong>one SHA string</strong> — as this dispatch's diff baseline. The gates (scope guard, contract sync, TDD first-commit) ask "what changed since this SHA." The working tree is <strong>never touched</strong>: no stash, no worktree swap. If the capture fails, the dispatch <strong>does not start</strong> — gates never run without a baseline.</p></div>
+  <h3>Gate fail → exactly one retry</h3>
+  <p>A failing gate isn't an instant block. The engine matches the failure against a <strong>post-fail hook</strong> (by stderr pattern); if one matches it runs the hook, and <strong>only if</strong> <code>hook.retry</code> is set does it re-run the gate <strong>once</strong>. Pass → <code>done</code>; still failing → <code>blocked</code>. It is exactly one retry, not a loop — for known transient failures (e.g. missing env setup).</p>
+  <p class="muted"><strong>Self-block short-circuit:</strong> if an implementer returns <code>Block: Q-XXX</code> in its handoff, the engine marks <code>blocked</code> immediately and skips the gates — no wasted review spend. CODEX quota exhaustion is detected from subprocess stderr and recorded so retries aren't thrown at an exhausted quota.</p>
+</div></section>
+
+<section id="concurrency"><div class="wrap">
+  <h2><span class="n">13</span>SSOT concurrency — file locks · atomic writes</h2>
+  <p>QUEUE/ARCHIVE are plain YAML, so <strong>concurrent writes could corrupt them</strong>. The state layer guards every write with an advisory file lock plus an atomic replace.</p>
+  <ul>
+    <li><strong>File lock</strong> — <code>.&lt;name&gt;.lock</code> via <code>fcntl.flock(LOCK_EX|LOCK_NB)</code> (exclusive, non-blocking). On contention it polls at 0.1s; a 30s timeout raises an error rather than hanging. An explicit env opt-out exists for platforms without <code>fcntl</code> (warns: race possible).</li>
+    <li><strong>Atomic write</strong> — every write goes to a temp file then <code>os.replace()</code> (POSIX atomic rename), so no one ever reads a half-written file.</li>
+  </ul>
+  <h3>Three separate locks — dispatch and archive coexist</h3>
+  <table>
+    <thead><tr><th>Lock file</th><th>Protects</th><th>Point</th></tr></thead>
+    <tbody>
+      <tr><td><code>.QUEUE.yaml.lock</code></td><td>QUEUE writes</td><td>exclusive during a state transition</td></tr>
+      <tr><td><code>.archive.lock</code></td><td>dispatcher sentinel</td><td>signals "archiving in progress" → dispatch is refused mid-archive</td></tr>
+      <tr><td><code>.archive-index.lock</code></td><td>archive-index rebuild</td><td><strong>separate</strong> from the sentinel, so re-indexing doesn't block dispatch</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">The split is intentional: an archive <em>move</em> must pause dispatch, but an index <em>rebuild</em> need not. That index is what lets <code>os3 lookup</code> find archived tickets — and it too is rebuilt atomically.</p>
+</div></section>
+
+<section id="memory"><div class="wrap">
+  <h2><span class="n">14</span>Memory across sessions</h2>
+  <p>An AI session loses its context. The OS pins memory to files with a <strong>start/end protocol</strong>, so nothing load-bearing lives only in a chat window.</p>
+  <h3>Boot read map — read once</h3>
+  <p>Session start reads each SSOT file <strong>once</strong> and keeps a summary in head; re-reading the same file (different offset) is treated as a <em>caching-failure</em> signal. Sub-agents boot from a <strong>slim core</strong> to save tokens and read the full constitution only on demand.</p>
+  <h3>Session end — an 8-axis retro</h3>
+  <p>The close isn't "what I did today." It's a mandatory self-interrogation across <strong>8 categories</strong> — answer each, even if "none":</p>
+  <table>
+    <thead><tr><th>#</th><th>Self-question</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>user↔AI collaboration friction (same instruction repeated? intent misread?)</td></tr>
+      <tr><td>2</td><td>DB/data risk (schema drift, missed migration, data loss)</td></tr>
+      <tr><td>3</td><td>dev environment (token TTL, redirect loop, port clash, missing env)</td></tr>
+      <tr><td>4</td><td>leftover files / .gitignore (temp files, sentinels, working-tree residue)</td></tr>
+      <tr><td>5</td><td>branching / deferred PM decisions (unresolved choices, missed unblock)</td></tr>
+      <tr><td>6</td><td>memory — is a pattern seen this session worth long-term memory?</td></tr>
+      <tr><td>7</td><td>vendor claims — did I verify with <code>--help</code> rather than assume?</td></tr>
+      <tr><td>8</td><td>security — plaintext secret, API key, OAuth flow, OWASP signal</td></tr>
+    </tbody>
+  </table>
+  <p>The retro header records a <code>revision_delta</code> (how many items the first draft missed vs the final). It's a <strong>metric, not a gate</strong> — pressure to see your own omission rate.</p>
+  <div class="note"><span class="l">Two memory tracks</span><p><strong>Project state</strong> (shared, git-tracked) lives in <code>devos/</code>; <strong>user/collaboration preferences</strong> (personal, outside git) live in the harness's memory. The rule is not to duplicate the same fact across both. A separate append-only <code>learnings.jsonl</code> logs reusable insights. Long-term memory is written only on triggers — a user correction, a stated preference, a verified library quirk, or a pattern seen ≥2× — never for things easily re-derived from code or git.</p></div>
+</div></section>
+
+<section id="problems"><div class="wrap">
+  <h2><span class="n">15</span>Problem management — decisions · blocks · inbound issues</h2>
+  <p>Problems go into <strong>different channels</strong> by kind. None of them end as "huh, that's a problem" in chat — they're pinned to files.</p>
+  <h3>① Question Queue (Q-XXX) — something needs deciding</h3>
+  <p>A blocked ticket or an architecture fork is written to <code>questions/QUEUE.md</code> in a standard shape. The key is <strong>Options + Recommendation + Default</strong> — so the system can proceed on the Default even if you never answer.</p>
+  <pre><code>## Q-0XX: &lt;short title&gt;
+Status: [open] | [resolved] | [parked]
+Blocking: yes | no
+**Options**: A) … B) … C) …
+**Recommendation**: A + B — &lt;why&gt;
+**Default (if no response)**: A
+**Resolution (date, actor)**: …</code></pre>
+  <p>At session start the planner gathers every <code>[open]</code> and triages (blocking first, capped; a non-blocking item that doesn't touch today's tickets is assumed at its Default rather than asked).</p>
+  <h3>② blocked — progress stopped</h3>
+  <p>Recorded on the ticket itself as <code>_blocked_reason</code> + <code>_blocked_log</code> + the transition history (§3). A block is usually an <em>engine</em> auto-stop (preflight, unresolved deps, gate fail) or a review BLOCKER — both typically raise a Q-XXX for you.</p>
+  <h3>③ Inbound issues (I- / P- / A-)</h3>
+  <p>A sister project using the same host can hand off OS-level defects it hit: <strong>I</strong> = bug, <strong>P</strong> = proposal/DX improvement, <strong>A</strong> = architecture/audit. Handling: cross-reference (already fixed?) → multi-axis analysis → cluster items sharing a root cause → abstract to a few decision points → plan.</p>
+  <div class="note"><span class="l">Abstracted, not impulse-fixed</span><p>A deck of N reported items becomes a <em>handful</em> of mechanism fixes, not N tickets — items with the same root cause are merged. And when the <em>handling itself</em> recurs, that becomes its own OS mechanism (the inbound template is one such product).</p></div>
+</div></section>
+
+<section id="policy"><div class="wrap">
+  <h2><span class="n">16</span>Policy depth — waivers · hard/soft · role authority</h2>
+  <h3>Waiver (W-XXX) — an exception must be recorded to pass</h3>
+  <p>A production hard-policy exception can't "just slide." It needs an <strong>inline waiver record + PM approval</strong>; without one, the work stays <code>needs_pm</code>/<code>blocked</code> rather than <code>done</code>.</p>
+  <pre><code>waivers:
+  - id: W-YYYYMMDD-NNN
+    policy: required_visual_review | security_review | test_failure | coverage | reviewer_request_changes
+    requested_by: CODEX
+    approved_by: PM            <span class="muted"># must be PM</span>
+    decision: accept_with_waiver
+    reason: &lt;risk understood and accepted&gt;
+    risk_accepted: &lt;specific residual risk&gt;
+    expires: never | YYYY-MM-DD | after_ticket
+    follow_up_ticket: T-YYY | none</code></pre>
+  <div class="grid g2">
+    <div class="card"><h3 style="margin-top:0">Waivable (PM may pass)</h3><ul style="margin:0"><li>non-critical test fail (follow-up exists)</li><li>subjective visual / taste trade-off</li><li>coverage gap (risk accepted + follow-up)</li></ul></div>
+    <div class="card"><h3 style="margin-top:0">Never waivable</h3><ul style="margin:0"><li>secret exposure · owner mismatch · scope violation</li><li>unresolved deps · dirty-tree destructive risk</li><li>unremediated auth/payment/privacy/data-loss</li></ul></div>
+  </div>
+  <h3>Hard vs soft policy class</h3>
+  <p><strong>Hard</strong> = fail-closed in production: duplicate id, unresolved deps, owner mismatch, scope violation, secret, required-test fail, required-review reject, missing UI visual review, missing waiver. <strong>Soft</strong> = warning / cleanup / follow-up ticket: file-length budget, complexity, doc drift, style, optional refactor.</p>
+  <h3>Role authority matrix</h3>
+  <p>Tool permissions (§7) are <em>per agent</em>; above them sit <em>per-role</em> decision boundaries. One agent can hold several roles.</p>
+  <table>
+    <thead><tr><th>Role</th><th>Can decide</th><th>Can block</th><th>Must not</th></tr></thead>
+    <tbody>
+      <tr><td><strong>PM</strong> (human)</td><td>product direction · priority · taste · final acceptance · waiver approval</td><td>direction / risk-acceptance questions</td><td>be forced to verify low-level code/test/gate output</td></tr>
+      <tr><td>Product Planner</td><td>user outcome · open questions · acceptance · ticket-decomposition draft</td><td>productization readiness when reqs vague</td><td>irreversible product decisions without PM</td></tr>
+      <tr><td>Tech Planner</td><td>tech options · risk controls · API/data/test/security advice</td><td>production readiness when arch/risk unclear</td><td>big architecture calls without grounds</td></tr>
+      <tr><td class="b">Builder</td><td>implementation detail within ticket scope</td><td>self-block on scope/deps/impl risk</td><td>edit out of scope · bypass review · solo-<code>done</code> production</td></tr>
+      <tr><td class="cx">Codex</td><td>infra · test · script · migration · failure analysis · code review</td><td>test/gate fail · scope/rollback risk</td><td>decide product direction alone · silently widen scope</td></tr>
+      <tr><td class="r">Reviewer</td><td>requirement-fit · DOD · test sufficiency verdict</td><td>missing DOD · weak tests · maintainability regress</td><td>silently fix its own finding in the same pass</td></tr>
+      <tr><td class="s">Security</td><td>secret/auth/permission/privacy/external-input verdict</td><td>high-risk issues · missing required security review</td><td>rely on free-form judgment where a deterministic check exists</td></tr>
+      <tr><td class="d">Visual review</td><td>verdict on the rendered UI</td><td>objective breakage (blank/clip/overlap/responsive)</td><td>be final approver of code/security/strategy</td></tr>
+      <tr><td>Dispatcher</td><td>routing · deps · owner/scope · gates · state transition · archive</td><td>hard-policy violation · missing required gate/waiver</td><td>subjective product/design judgment</td></tr>
+    </tbody>
+  </table>
+  <p class="muted"><strong>Principle:</strong> the PM doesn't parse raw policy noise — the system summarizes what <em>blocks</em>, what's a <em>recommendation</em>, and what needs <em>PM judgment</em>, and routes only the last to you.</p>
+</div></section>
+
+<section id="metrics"><div class="wrap">
+  <h2><span class="n">17</span>Measurement — cost · scorecard · paired-run</h2>
+  <h3>Cost channels</h3>
+  <p><code>os3 cost-report</code> aggregates the dispatch logs into three channels and estimates spend: <strong>C1</strong> interactive (reviewer / security / designer), <strong>C2</strong> agent-SDK (cheaper batch review), <strong>C0</strong> external CODEX (implement + the b' second opinion). It warns when a channel passes ~80% of its credit — "how much review did I put on which model" turned into money.</p>
+  <h3>4-axis scorecard (biweekly)</h3>
+  <p>Right after a phase ships, and on a biweekly cadence, four axes are recorded to watch the balance, each with a ship/risk threshold:</p>
+  <table>
+    <thead><tr><th>Axis</th><th>Key thresholds</th></tr></thead>
+    <tbody>
+      <tr><td>Quality</td><td>findings_recall ≥ 90% · <strong>blocker_misses = 0</strong> · mutation survivors ≤ 5% · user_acceptance ≥ 80%</td></tr>
+      <tr><td>Speed</td><td>ticket wall-clock · delta vs baseline (negative = faster)</td></tr>
+      <tr><td>Cost</td><td>C1/C2/C0 estimate + total · delta vs baseline (negative = saved)</td></tr>
+      <tr><td>Security</td><td>critical misclassification = 0 · <strong>b' escalation 10–25%</strong> · critical full-chain = 100%</td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><span class="l">vetokill — instant brake</span><p>Any one of these auto-brakes: <strong>blocker_miss ≥ 1</strong> (rollback) · critical misclassification ≥ 1 · speed −20% · cost up. The verdict is <code>continue / pause / rollback</code> — a measured circuit-breaker on the whole optimization.</p></div>
+  <h3>paired-run — measure before switching models</h3>
+  <p>Before moving an implementer to a <strong>cheaper model</strong>, the same ticket is run on <em>both</em> models and quality+cost are measured. The default model changes <strong>only</strong> after a threshold is met (e.g. ≥3 tickets · recall ≥ 90% · 0 BLOCKER misses · acceptance held). So "switch to the cheaper model" happens on <strong>measured evidence</strong>, not vibes.</p>
+  <p class="muted"><strong>Token discipline</strong> rides alongside: the QUEUE↔ARCHIVE split keeps the active file small, sub-agents boot from a slim core, dispatch inlines that core into the prompt to skip a read round-trip, and a context-monitor hook warns at ~35% / ~25% remaining so a session hands off before it thrashes.</p>
+</div></section>
+
+<section id="map"><div class="wrap">
+  <h2><span class="n">18</span>File map</h2>
+  <p>Where everything lives in the host repo (generic tree):</p>
+  <div class="diagram"><pre>~/dev-os/                        # host = engine · doctrine · shared .claude (one git repo)
+├── bin/os3                      # single entry point
+├── server/                      # the engine (Python)
+│   ├── dispatcher.py            # heart of routing + execution
+│   ├── ssot.py                  # QUEUE / state / SSOT read+write
+│   ├── cli.py                   # os3 subcommand registry
+│   ├── dashboard.py             # local read-only kanban (:8787)
+│   └── gemini_dispatcher.py     # visual-review channel
+├── .claude/
+│   ├── CLAUDE.md                # planner operating rules (imports devos/AI.md)
+│   ├── agents/{builder,reviewer,designer,security}.md
+│   ├── hooks/{guard-no-impl.sh, context-monitor.js}
+│   └── settings.json            # hooks · MCP · statusline
+├── devos/
+│   ├── AI.md / AI-core.md       # constitution / slim boot copy
+│   ├── ETHOS.md                 # final judgment basis (Iron Laws)
+│   ├── CONTEXT.md               # TL;DR + Locked Decisions (D-XX)
+│   ├── PROJECT_STATE.md         # milestone / progress SSOT
+│   ├── tasks/{QUEUE,ARCHIVE,ARCHIVE-INDEX}.yaml + locks
+│   ├── questions/QUEUE.md       # Q-XXX decision queue
+│   ├── issues/                  # I-/P-/A- inbound + handoff
+│   ├── plans/pending/           # plans awaiting approval
+│   ├── prompts/{claude,common,codex}/
+│   ├── logs/{date}-{agent}.md   # session logs (+ learnings, dispatch, gemini)
+│   └── docs/{ADR,API_CONTRACT,UI_CONTRACT,policy/,...}
+└── projects/                    # host git-ignores these — each is its own repo
+    ├── product-a/   apps/ packages/ + own QUEUE / PROJECT_STATE / .os3.yaml
+    └── product-b/   ...</pre></div>
+  <p class="muted">The host repo is one git repo; each product under <code>projects/</code> is independent and ignored by the host (§9). One engine, many products.</p>
+</div></section>
+
 <section id="glossary"><div class="wrap">
-  <h2><span class="n">12</span>Glossary</h2>
+  <h2><span class="n">19</span>Glossary</h2>
   <table><tbody>
     <tr><td><b>SSOT</b></td><td>single source of truth; conflicts resolved by the precedence in §8</td></tr>
     <tr><td><b>ticket</b></td><td>the unit of work; 1 ticket = 1 PR</td></tr>
@@ -241,6 +411,10 @@ os3 feedback "..."       capture OS friction into the inbox</code></pre>
     <tr><td><b>pr-check</b></td><td>stack-agnostic baseline gate bundle</td></tr>
     <tr><td><b>mode</b></td><td>exploration / productization / production — sets gate posture</td></tr>
     <tr><td><b>host-OS</b></td><td>one engine in a host repo + independent project repos</td></tr>
+    <tr><td><b>Q-XXX</b></td><td>question queue entry; Options + Recommendation + Default so it proceeds without you</td></tr>
+    <tr><td><b>W-XXX</b></td><td>waiver; a recorded, PM-approved exception to a production hard policy</td></tr>
+    <tr><td><b>paired-run</b></td><td>same ticket on two models to measure before switching the default to a cheaper one</td></tr>
+    <tr><td><b>vetokill</b></td><td>auto-brake (continue/pause/rollback) when a scorecard threshold is breached</td></tr>
   </tbody></table>
 </div></section>
 
