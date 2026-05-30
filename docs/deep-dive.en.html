@@ -11,7 +11,7 @@
   a{color:var(--acc);text-decoration:none}a:hover{text-decoration:underline}
   code{font-family:var(--mono);font-size:.85em;background:#080b11;border:1px solid var(--line);border-radius:4px;padding:.08em .38em;color:#bfe3ff}
   pre{font-family:var(--mono);font-size:12.5px;line-height:1.6;background:#080b11;border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;color:#ccd6e4}
-  .wrap{max-width:920px;margin:0 auto;padding:0 22px}
+  .wrap{max-width:none;margin:0;padding:0}
   header.hero{border-bottom:1px solid var(--line);background:radial-gradient(900px 380px at 80% -10%,rgba(157,123,255,.18),transparent 60%),radial-gradient(700px 320px at 5% 0,rgba(110,168,254,.14),transparent 55%),var(--bg)}
   .hero-in{padding:60px 0 40px}
   .kick{display:inline-block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc);border:1px solid var(--line);background:var(--card);padding:5px 12px;border-radius:999px;margin-bottom:18px}
@@ -19,11 +19,18 @@
   h1 .g{background:linear-gradient(100deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
   .lead{font-size:18px;color:var(--ink2);max-width:760px;margin:0 0 18px}
   .langs{font-size:13px;color:var(--ink3)}.langs a{font-weight:600}
-  nav.toc{position:sticky;top:0;z-index:20;background:rgba(12,15,21,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-  nav.toc .wrap{display:flex;flex-wrap:wrap;gap:3px;padding:8px 22px}
-  nav.toc a{white-space:nowrap;font-size:12.5px;color:var(--ink3);padding:5px 9px;border-radius:7px}
-  nav.toc a:hover{color:var(--ink);background:var(--card);text-decoration:none}
-  section{padding:42px 0;border-top:1px solid var(--line);scroll-margin-top:96px}section:first-of-type{border-top:none}
+  .shell{display:grid;grid-template-columns:250px 1fr;max-width:1300px;margin:0 auto;min-height:100vh}
+  aside{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:22px 16px}
+  aside .brand{font-weight:800;font-size:15px;letter-spacing:-.01em;margin-bottom:2px}
+  aside .ver{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-bottom:12px}
+  aside .langs{font-size:12px;color:var(--ink3);margin:0 0 14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+  aside .langs a{font-weight:600}
+  aside nav a{display:block;font-size:13px;color:var(--ink3);padding:5px 9px;border-radius:7px;line-height:1.35}
+  aside nav a:hover{color:var(--ink);background:var(--card);text-decoration:none}
+  aside nav .grp{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink3);margin:16px 9px 5px;font-weight:700}
+  main{padding:44px 46px 80px;min-width:0;max-width:940px}
+  @media(max-width:880px){.shell{grid-template-columns:1fr}aside{position:static;height:auto;overflow:visible;border-right:none;border-bottom:1px solid var(--line)}aside nav{display:flex;flex-wrap:wrap;gap:2px}aside nav .grp{width:100%}main{padding:28px 20px 60px}}
+  section{padding:38px 0;border-top:1px solid var(--line);scroll-margin-top:16px}section:first-of-type{border-top:none;padding-top:26px}
   h2{font-size:24px;font-weight:800;letter-spacing:-.015em;margin:0 0 10px}
   h2 .n{font-family:var(--mono);font-size:15px;color:var(--acc2);font-weight:600;margin-right:8px}
   h3{font-size:17px;font-weight:700;margin:24px 0 8px}
@@ -52,19 +59,47 @@
 </style>
 </head>
 <body>
-<header class="hero"><div class="wrap hero-in">
+<div class="shell">
+
+<aside>
+  <div class="brand">Vibe Coding OS</div>
+  <div class="ver">Architecture · Deep Dive</div>
+  <div class="langs">🌐 <strong>English</strong> · <a href="deep-dive.ko.html">한국어</a> · <a href="../README.md">README</a></div>
+  <nav>
+    <div class="grp">Overview</div>
+    <a href="#tl">0 · Summary</a>
+    <a href="#layers">1 · Three layers</a>
+    <a href="#agents">2 · Agents</a>
+    <div class="grp">Unit of work</div>
+    <a href="#tickets">3 · Tickets</a>
+    <a href="#flow">4 · Flow</a>
+    <a href="#dispatch">5 · Dispatch</a>
+    <div class="grp">Modes &amp; safety</div>
+    <a href="#modes">6 · Modes</a>
+    <a href="#safety">7 · Safety</a>
+    <div class="grp">State &amp; loop</div>
+    <a href="#ssot">8 · SSOT</a>
+    <a href="#hostos">9 · Host-OS</a>
+    <a href="#feedback">10 · Feedback loop</a>
+    <a href="#cli">11 · Commands</a>
+    <div class="grp">Engine internals</div>
+    <a href="#engine">12 · Engine internals</a>
+    <a href="#concurrency">13 · Concurrency</a>
+    <a href="#memory">14 · Memory</a>
+    <div class="grp">Problems &amp; policy</div>
+    <a href="#problems">15 · Problem mgmt</a>
+    <a href="#policy">16 · Policy depth</a>
+    <a href="#metrics">17 · Measurement</a>
+    <div class="grp">Reference</div>
+    <a href="#map">18 · File map</a>
+    <a href="#glossary">19 · Glossary</a>
+  </nav>
+</aside>
+
+<main>
   <span class="kick">● Vibe Coding OS · Architecture</span>
   <h1>How the OS <span class="g">actually works</span></h1>
   <p class="lead">A deep dive into the layers, agents, and enforcement of Vibe Coding OS — the part the README summarizes. Written for people who want to understand <em>why</em> it's safe, not just <em>that</em> it is.</p>
-  <p class="langs">🌐 <strong>English</strong> · <a href="deep-dive.ko.html">한국어</a> · <a href="../README.md">← README</a></p>
-</div></header>
-
-<nav class="toc"><div class="wrap">
-  <a href="#tl">Summary</a><a href="#layers">3 layers</a><a href="#agents">Agents</a><a href="#tickets">Tickets</a>
-  <a href="#flow">Flow</a><a href="#dispatch">Dispatch</a><a href="#modes">Modes</a><a href="#safety">Safety</a>
-  <a href="#ssot">SSOT</a><a href="#hostos">Host-OS</a><a href="#feedback">Feedback loop</a><a href="#cli">Commands</a>
-  <a href="#engine">Engine</a><a href="#concurrency">Concurrency</a><a href="#memory">Memory</a><a href="#problems">Problems</a><a href="#policy">Policy</a><a href="#metrics">Metrics</a><a href="#map">File map</a><a href="#glossary">Glossary</a>
-</div></nav>
 
 <section id="tl"><div class="wrap">
   <h2><span class="n">0</span>One paragraph</h2>
@@ -419,5 +454,8 @@ Blocking: yes | no
 </div></section>
 
 <div class="foot"><div class="wrap">Vibe Coding OS — Architecture Deep Dive · <a href="deep-dive.ko.html">한국어</a> · <a href="../README.md">README</a><br>The authoritative rules live in <code>devos/AI.md</code>, <code>ETHOS.md</code>, and <code>docs/policy/</code>; this page is an explainer.</div></div>
+</main>
+
+</div>
 </body>
 </html>
