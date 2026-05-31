@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "feat/**", "fix/**", "chore/**", "docs/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Python tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          if python -m pytest tests/ --co -q 2>/dev/null | grep -q "::"; then
+            python -m pytest tests/ -q
+          else
+            echo "No tests collected — skipping (no tests in tree)"
+          fi
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: false
+
+  lint-shell:
+    name: Shell script syntax
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check shell scripts
+        run: |
+          find scripts/ .claude/hooks/ -name "*.sh" -print0 \
+            | xargs -0 -I{} bash -n {} \
+            && echo "All shell scripts pass syntax check"
+
+  yaml-lint:
+    name: YAML files parseable
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check YAML files
+        run: |
+          pip install pyyaml -q
+          python3 - <<'PY'
+          import yaml, pathlib, sys
+          errors = []
+          for p in pathlib.Path(".").rglob("*.yaml"):
+              # skip venv and node_modules
+              if any(part in p.parts for part in [".venv", "venv", "node_modules", ".git"]):
+                  continue
+              try:
+                  yaml.safe_load(p.read_text())
+              except yaml.YAMLError as e:
+                  errors.append(f"{p}: {e}")
+          if errors:
+              print("YAML parse errors:")
+              for e in errors:
+                  print(" ", e)
+              sys.exit(1)
+          print(f"All YAML files parse cleanly.")
+          PY
