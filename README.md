@@ -295,6 +295,23 @@ docs/
 
 ---
 
+## Use just a piece
+
+Not ready to adopt the full OS? These components can be extracted and used standalone:
+
+| Component | What it does | Files |
+|---|---|---|
+| **Read-only reviewer / security / designer agents** | Sub-agent definitions with read-only tool allowlists — gives you an adversarial reviewer that physically cannot self-merge | [`.claude/agents/reviewer.md`](.claude/agents/reviewer.md), [`.claude/agents/security.md`](.claude/agents/security.md), [`.claude/agents/designer.md`](.claude/agents/designer.md) |
+| **Ticket schema** | Standard ticket fields (goal / dod / files / tdd / gates) with verifiable DOD pattern and failure-case requirement | [`docs/policy/TICKET_SCHEMA.md`](docs/policy/TICKET_SCHEMA.md) |
+| **Scope-reduction gate** | Grep-enforced lint that blocks scope-reduction vocabulary (`v1 for now`, `TODO placeholder`, `temporary`, …) from ticket goals | [`devos/prompts/common/scope-reduction-prohibition.md`](devos/prompts/common/scope-reduction-prohibition.md) |
+| **Planner guard hook** | `PreToolUse` hook that blocks the planner from writing to implementation paths (`apps/`, `packages/`, `scripts/`, …) | [`.claude/hooks/guard-no-impl.sh`](.claude/hooks/guard-no-impl.sh) |
+| **Context-monitor hook** | `PostToolUse` hook that warns the agent when token budget hits WARNING (35%) or CRITICAL (25%) thresholds | [`.claude/hooks/context-monitor.js`](.claude/hooks/context-monitor.js) |
+
+Copy the file(s) you need; each is self-contained. The reviewer/security/designer agents require
+Claude Code sub-agent support. The hooks require Claude Code's hook system.
+
+---
+
 ## What's new in v4.0
 
 A major jump from the v3.x three-account model to **OS3 / host-OS**:
