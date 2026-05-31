@@ -327,6 +327,8 @@ A major jump from the v3.x three-account model to **OS3 / host-OS**:
 
 ## Version history
 
+Full change notes: [`CHANGELOG.md`](CHANGELOG.md).
+
 - **v4.0** (current) — **OS3 / host-OS.** In-session sub-agent model (Claude 2 sunset → builder), read-only review board (reviewer/designer/security), operating modes with fail-closed gate posture, `os3` CLI (replaces `make`/`os2.yaml`), host-OS architecture (one engine + independent project repos), quantitative cross-model (b') trigger, local kanban dashboard, OS-feedback loop, incident→Locked-Decision pipeline.
 - **v3.4** — Adversarial prompt suite (PRD intake, adversarial review, security audit, cross-model, goal-backward verification, scope-reduction lint), ETHOS tiebreaker, dispatcher hardening, `preflight-codex.sh`.
 - **v3.3** — Skills integration via the Anthropic superpowers plugin, structured prompt library, expanded ops rules.
