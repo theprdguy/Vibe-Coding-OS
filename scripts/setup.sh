@@ -113,9 +113,25 @@ load_env_file
 success "Loaded local environment from .env when present"
 success "Optional integrations can be configured in .env or .env.local"
 
+section "4/4 PATH 설정"
+BIN_DIR="$ROOT_DIR/bin"
+if echo "$PATH" | tr ':' '\n' | grep -qx "$BIN_DIR"; then
+  success "bin/ already on PATH"
+else
+  warn "bin/ is not on PATH — os3 commands won't work from outside this directory"
+  printf "    Add to PATH with:\n"
+  printf "      echo 'export PATH=\"%s:\$PATH\"' >> ~/.zshrc && source ~/.zshrc\n" "$BIN_DIR"
+  printf "    Or for bash:\n"
+  printf "      echo 'export PATH=\"%s:\$PATH\"' >> ~/.bashrc && source ~/.bashrc\n" "$BIN_DIR"
+fi
+
 printf "\n"
 if [ "$WARN_COUNT" -eq 0 ]; then
   success "Setup complete with no warnings"
 else
   summary_warn "Setup complete with ${WARN_COUNT} warning(s)"
 fi
+printf "\n"
+printf "Next: open a Claude Code session in this directory:\n"
+printf "  cd %s && claude\n" "$ROOT_DIR"
+printf "Or enter a project: os3 open <project-name>\n"

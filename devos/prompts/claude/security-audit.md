@@ -7,6 +7,8 @@
 
 이 prompt는 GStack `/cso`의 *prompt 부분*만 차용. 원본의 22MB ML 분류기, Haiku 투표, canary 토큰 같은 인프라는 미차용. 효과 70~80%. **출시 임팩트가 큰 영역(payment 처리 등)은 외부 보안 감사 별도 의뢰 필수**.
 
+Prompt portion adapted from gstack /cso — Copyright (c) 2026 Garry Tan, MIT (https://github.com/garrytan/gstack).
+
 ## 적용 절차 (CLAUDE1)
 
 1. ticket의 도메인 식별

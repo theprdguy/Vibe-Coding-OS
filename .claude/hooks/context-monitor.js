@@ -2,6 +2,7 @@
 // Vendored from gsd-build/get-shit-done hooks/gsd-context-monitor.js
 // Original: https://github.com/gsd-build/get-shit-done/blob/main/hooks/gsd-context-monitor.js
 // License: MIT (https://github.com/gsd-build/get-shit-done/blob/main/LICENSE)
+// Copyright (c) 2025 Lex Christopherson. Licensed MIT; see THIRD_PARTY_LICENSES.md
 // Modifications:
 //   - Vendoring header added
 //   - GSD-specific .planning/ config check kept (inert when absent)

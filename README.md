@@ -1,4 +1,4 @@
-![Version](https://img.shields.io/badge/version-4.0-blue) ![GitHub Template](https://img.shields.io/badge/GitHub-Template-238636?logo=github) ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white) ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
+![Version](https://img.shields.io/badge/version-4.0-blue) ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg) ![GitHub Template](https://img.shields.io/badge/GitHub-Template-238636?logo=github) ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white) ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
 
 # Vibe Coding OS
 
@@ -29,6 +29,8 @@ A visual, illustrated walkthrough of the architecture — layers, agents, ticket
 
 - [What this is](#what-this-is)
 - [Why it exists](#why-it-exists)
+- [Requirements & compatibility](#requirements--compatibility)
+- [Drop-in mode — try it in one repo (5 minutes)](#drop-in-mode--try-it-in-one-repo-5-minutes)
 - [Meet the agents](#meet-the-agents)
 - [How it works](#how-it-works)
 - [Operating modes](#operating-modes)
@@ -37,11 +39,13 @@ A visual, illustrated walkthrough of the architecture — layers, agents, ticket
 - [Quick start](#quick-start)
 - [The host-OS model — one engine, many projects](#the-host-os-model--one-engine-many-projects)
 - [Repo layout](#repo-layout)
+- [Use just a piece](#use-just-a-piece)
 - [What's new in v4.0](#whats-new-in-v40)
 - [FAQ](#faq)
 - [Version history](#version-history)
 - [Contributing](#contributing)
 - [Credits & inspiration](#credits--inspiration)
+- [License](#license)
 
 ---
 
@@ -69,6 +73,47 @@ Every developer who vibe-codes hits the same walls:
 Vibe Coding OS answers each one structurally: separated roles with **enforced** permissions, **evidence-before-done** Iron Laws, a **file-based SSOT** the agents reload each session, and an **append-only audit trail** (`_transition_history`, session logs) on every ticket.
 
 "PM-friendly" does **not** mean low quality. So that you *don't* have to verify every line, the OS is **stricter**, not looser — in Production mode it behaves like a strong development team (tests, security, error/empty/loading states, independent review, auditable waivers).
+
+---
+
+## Requirements & compatibility
+
+This is **Claude-Code-native and opinionated** — it is NOT a model-agnostic harness.
+
+| Category | Tool | Required? | Notes |
+|---|---|---|---|
+| **Required** | [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) | Yes | Claude Code subscription. CLAUDE1 + all in-session sub-agents run here. |
+| **Optional** | [OpenAI Codex CLI](https://platform.openai.com/docs/codex/overview) | No | Enables the CODEX implementer (backend/infra/tests) and cross-model second opinion (b'). |
+| **Optional** | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | No | Visual-outcome reviewer for rendered UI (`os3 gemini`). |
+| **MCP** | [context7](https://github.com/upstash/context7) | No | Used by CLAUDE1 for up-to-date library API docs. |
+| **Plugin** | [obra/superpowers](https://github.com/obra/superpowers) | No | Agentic skills (brainstorming, writing-plans, systematic-debugging, etc.). Install: [`devos/docs/SKILLS_PLUGIN_INSTALL.md`](devos/docs/SKILLS_PLUGIN_INSTALL.md). |
+| **Runtime** | Python 3.10+ | Yes | For `server/` and `bin/os3`. |
+| **Platform** | macOS or Linux | Yes | Windows via WSL2 is untested. |
+
+---
+
+## Drop-in mode — try it in one repo (5 minutes)
+
+**Fastest way to taste the OS**: scaffold it into an existing repo without restructuring your machine.
+
+```bash
+# From inside your existing project repo:
+bash /path/to/vibe-coding-os/scripts/dropin-init.sh
+```
+
+This copies `.claude/` (agents, hooks, settings) into your repo and creates a minimal `devos/` skeleton (QUEUE.yaml, questions, PROJECT_STATE.md, CONTEXT.md) plus a `.os3.yaml` marker. The hook commands in the copied `settings.json` are rewritten to point at your repo's own `.claude/hooks/` directory, so the drop-in repo is **fully self-contained** — the hooks run from the copy inside your repo and the source OS clone does not need to remain in place. Run `claude` in that repo and CLAUDE1 picks up the doctrine immediately.
+
+| | Drop-in | Host-OS (full) |
+|---|---|---|
+| **Repos** | 1 | many (engine once, N projects) |
+| **Setup time** | ~5 min (one script) | ~15 min (clone host, register projects) |
+| **What you get** | Doctrine + agents + guard hooks + devos/ skeleton | Everything + `os3 dispatch`, `os3 open`, multi-project kanban, OS-feedback loop |
+| **os3 CLI** | Optional (install separately) | Built-in |
+| **Graduate to host-OS?** | Yes — see [host-OS model](#the-host-os-model--one-engine-many-projects) | — |
+
+> Drop-in still gives you the full agent panel (builder, reviewer, security, designer) and the guard-no-impl + context-monitor hooks. The copied `.claude/` is what runs — hooks fire from your repo's own `.claude/hooks/` directory. The Python `os3 dispatch` routing requires the host CLI on PATH; without it, use `claude` directly and dispatch manually.
+
+See a full example: [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md).
 
 ---
 
@@ -173,17 +218,21 @@ Contract-first: if API/UI behavior changes, the contract doc is updated **before
 ## Quick start
 
 ```bash
-# 0. Use this template on GitHub, then clone your copy
-git clone https://github.com/<you>/<your-os>.git ~/dev-os && cd ~/dev-os
+# 0. Use this template on GitHub, then clone your copy anywhere
+git clone https://github.com/<you>/<your-os>.git
+cd <your-os>
 
-# 1. Python deps + put the os3 CLI on PATH
-pip install -r requirements.txt
-echo 'export PATH="$HOME/dev-os/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+# 1. Run setup: checks prereqs, installs Python deps, guides PATH setup
+./scripts/setup.sh
 
-# 2. Open a session (injects host settings + launches Claude Code)
+# 2. Add bin/ to PATH (setup.sh will show the exact command for your shell)
+#    Example for zsh:
+export PATH="$(pwd)/bin:$PATH"   # for this session; setup.sh shows the permanent form
+
+# 3. Open a session (injects host settings + launches Claude Code)
 os3 open <project>          # or just run `claude` in the repo root to work on the OS itself
 
-# 3. In the session: submit a PRD → CLAUDE1 decomposes → approve → dispatch
+# 4. In the session: submit a PRD → CLAUDE1 decomposes → approve → dispatch
 os3 status                  # current state
 os3 queue                   # active tickets
 os3 approve                 # approve a pending plan
@@ -193,16 +242,16 @@ os3 archive                 # move done tickets to ARCHIVE.yaml
 os3 dashboard               # local read-only kanban at http://127.0.0.1:8787
 ```
 
-You need [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) (required) and the [Codex CLI](https://platform.openai.com/docs/codex/overview) (optional, for the CODEX implementer + cross-model). Gemini CLI is optional for visual review.
+You need [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) (required). See the [Requirements & compatibility](#requirements--compatibility) table above for optional tools.
 
 ---
 
 ## The host-OS model — one engine, many projects
 
-The engine, agents, and doctrine live **once** in a host repo (`~/dev-os`). Each product is an **independent git repo** under `~/dev-os/projects/`, carrying only its own product code and task state. The host provides everything else.
+The engine, agents, and doctrine live **once** in a host repo (clone it anywhere — `~/dev-os` is a common choice but not required). Each product is an **independent git repo** under `<host>/projects/`, carrying only its own product code and task state. The host provides everything else.
 
 ```
-~/dev-os/                 host = engine · doctrine · shared .claude (one git repo)
+<host-repo>/              host = engine · doctrine · shared .claude (one git repo)
 ├── server/  bin/os3  .claude/  devos/
 └── projects/            (git-ignored by the host — each is its own repo)
     ├── myproduct-a/      apps/ packages/ + its own devos/tasks · PROJECT_STATE · .os3.yaml
@@ -246,6 +295,23 @@ docs/
 
 ---
 
+## Use just a piece
+
+Not ready to adopt the full OS? These components can be extracted and used standalone:
+
+| Component | What it does | Files |
+|---|---|---|
+| **Read-only reviewer / security / designer agents** | Sub-agent definitions with read-only tool allowlists — gives you an adversarial reviewer that physically cannot self-merge | [`.claude/agents/reviewer.md`](.claude/agents/reviewer.md), [`.claude/agents/security.md`](.claude/agents/security.md), [`.claude/agents/designer.md`](.claude/agents/designer.md) |
+| **Ticket schema** | Standard ticket fields (goal / dod / files / tdd / gates) with verifiable DOD pattern and failure-case requirement | [`docs/policy/TICKET_SCHEMA.md`](docs/policy/TICKET_SCHEMA.md) |
+| **Scope-reduction gate** | Grep-enforced lint that blocks scope-reduction vocabulary (`v1 for now`, `TODO placeholder`, `temporary`, …) from ticket goals | [`devos/prompts/common/scope-reduction-prohibition.md`](devos/prompts/common/scope-reduction-prohibition.md) |
+| **Planner guard hook** | `PreToolUse` hook that blocks the planner from writing to implementation paths (`apps/`, `packages/`, `scripts/`, …) | [`.claude/hooks/guard-no-impl.sh`](.claude/hooks/guard-no-impl.sh) |
+| **Context-monitor hook** | `PostToolUse` hook that warns the agent when token budget hits WARNING (35%) or CRITICAL (25%) thresholds | [`.claude/hooks/context-monitor.js`](.claude/hooks/context-monitor.js) |
+
+Copy the file(s) you need; each is self-contained. The reviewer/security/designer agents require
+Claude Code sub-agent support. The hooks require Claude Code's hook system.
+
+---
+
 ## What's new in v4.0
 
 A major jump from the v3.x three-account model to **OS3 / host-OS**:
@@ -278,6 +344,8 @@ A major jump from the v3.x three-account model to **OS3 / host-OS**:
 
 ## Version history
 
+Full change notes: [`CHANGELOG.md`](CHANGELOG.md).
+
 - **v4.0** (current) — **OS3 / host-OS.** In-session sub-agent model (Claude 2 sunset → builder), read-only review board (reviewer/designer/security), operating modes with fail-closed gate posture, `os3` CLI (replaces `make`/`os2.yaml`), host-OS architecture (one engine + independent project repos), quantitative cross-model (b') trigger, local kanban dashboard, OS-feedback loop, incident→Locked-Decision pipeline.
 - **v3.4** — Adversarial prompt suite (PRD intake, adversarial review, security audit, cross-model, goal-backward verification, scope-reduction lint), ETHOS tiebreaker, dispatcher hardening, `preflight-codex.sh`.
 - **v3.3** — Skills integration via the Anthropic superpowers plugin, structured prompt library, expanded ops rules.
@@ -298,6 +366,14 @@ Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The short vers
 - Contracts in `docs/API_CONTRACT.md` / `UI_CONTRACT.md` update **before** code
 - Use `status: todo` on new tickets (other statuses are silently skipped by the dispatcher)
 - Fork-friendly: keep `devos/`, wire your test runner into `os3 pr-check`, reset `devos/tasks/QUEUE.yaml`
+
+---
+
+## License
+
+This project is licensed under the **MIT License** — see [`LICENSE`](LICENSE) for the full text.
+
+Third-party vendored sources and dependency attributions are documented in [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md).
 
 ---
 
