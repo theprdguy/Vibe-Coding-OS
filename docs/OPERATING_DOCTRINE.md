@@ -1,21 +1,21 @@
-# OS3 Operating Doctrine v0.1
+# deos Operating Doctrine v0.1
 
 Status: draft
 
 ## 1. 정체성
 
-OS3는 비개발자 PM을 위한 제품 제작 운영체계다.
+deos는 비개발자 PM을 위한 제품 제작 운영체계다.
 
 목표는 거대한 개발 조직을 흉내 내거나 agent 수를 늘리는 것이 아니다. 목표는
 PM이 가진 제품 아이디어를 실제로 동작하고 유지 가능한 소프트웨어로 바꾸는
 과정을 LLM 동료들과 함께 안전하게 수행하는 것이다.
 
-OS3는 PM의 기술 부담을 줄여야 한다. 엔지니어링 조율, 테스트, 리뷰, 보안,
+deos는 PM의 기술 부담을 줄여야 한다. 엔지니어링 조율, 테스트, 리뷰, 보안,
 운영 기록을 PM에게 떠넘기면 실패다.
 
 ## 2. North Star
 
-PM이 제품 아이디어를 설명하면 OS3는 다음을 수행해야 한다.
+PM이 제품 아이디어를 설명하면 deos는 다음을 수행해야 한다.
 
 1. 제품 의도와 사용자 결과를 명확히 한다.
 2. 아이디어를 실행 가능한 작업 단위로 나눈다.
@@ -26,14 +26,14 @@ PM이 제품 아이디어를 설명하면 OS3는 다음을 수행해야 한다.
 
 이상적인 경험은 다음과 같다.
 
-> PM은 제품 판단에 집중한다. OS3는 엔지니어링 실행, 품질 관리, 운영 기록을
+> PM은 제품 판단에 집중한다. deos는 엔지니어링 실행, 품질 관리, 운영 기록을
 > 책임진다.
 
 ## 3. 핵심 원칙
 
 ### PM 친화적이라는 말은 낮은 품질을 뜻하지 않는다
 
-PM이 모든 기술 세부사항을 직접 검증하지 않아도 되려면, OS3는 오히려 더
+PM이 모든 기술 세부사항을 직접 검증하지 않아도 되려면, deos는 오히려 더
 엄격해야 한다. Production 작업에서는 좋은 개발팀처럼 보안, 에러 처리,
 테스트, 확장성, 유지보수성을 선제적으로 챙겨야 한다.
 
@@ -63,7 +63,7 @@ follow-up이 무엇인지 남아야 한다.
 
 ## 4. Operating Modes
 
-OS3는 세 가지 mode를 가져야 한다. 하나의 아이디어는 신뢰도가 올라가면서
+deos는 세 가지 mode를 가져야 한다. 하나의 아이디어는 신뢰도가 올라가면서
 Exploration에서 Productization, Production으로 이동할 수 있다.
 
 ### Exploration Mode
@@ -200,7 +200,7 @@ visual review는 가능한 한 safe test data 또는 masking을 사용해야 한
 
 ## 8. Policy Classes
 
-OS3는 hard policy와 soft guidance를 구분해야 한다.
+deos는 hard policy와 soft guidance를 구분해야 한다.
 
 ### Hard policy
 

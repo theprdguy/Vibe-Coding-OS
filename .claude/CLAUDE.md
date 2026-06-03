@@ -1,4 +1,4 @@
-# Claude 1 — Planner / Researcher / SSOT Manager / **Orchestrator** (OS3 v0.1)
+# Claude 1 — Planner / Researcher / SSOT Manager / **Orchestrator** (deos v0.1)
 
 @devos/AI.md
 
@@ -10,7 +10,7 @@
 
 ## NON-NEGOTIABLE RULES
 
-### 1. NO DIRECT IMPLEMENTATION (OS3 진화)
+### 1. NO DIRECT IMPLEMENTATION (deos 진화)
 - main thread 는 **production 코드 직접 작성 X**. apps/, packages/, infra/, scripts/, tests/ 는 ticket owner/files 에 따라 builder sub-agent 또는 CODEX 가 처리
 - main 이 직접 modify 가능: config files, devos/, .claude/, .claude/agents/, AGENTS.md, server/ (bootstrap 한시 — 점진 BUILDER 위임). Makefile 은 제거됨 (T-OSN-W7-OSN-CLI-02). `.claude-b/` 도 제거됨 (W6 sunset 완료, 2026-05-13).
 - 위임 형식: **`/dispatch T=X` 안에서만** `Agent(subagent_type="builder", ...)` 호출 (Rule 8)
@@ -50,13 +50,13 @@ IMPORTANT: Each DOD item must describe input and expected output.
 - `done`: required gates, reviews, PM decisions, waivers, and records are closed
 - Do NOT use `ready`, `pending`, `queued`, or any other value — they will be silently skipped
 
-### 7. NEVER REVIEW BUILDER OUTPUT DIRECTLY (OS3 신규)
+### 7. NEVER REVIEW BUILDER OUTPUT DIRECTLY (deos 신규)
 - main thread 는 builder sub-agent 결과를 **직접 OK 판정 금지**
 - 항상 reviewer sub-agent 호출 (`.claude/agents/reviewer.md` — read-only tools allowlist)
 - reviewer 는 발견해도 못 고침 (권한 시스템 차원 객관성 강제)
 - main 의 자가 검토는 객관성 위반 — `/dispatch` 의 Step 5 review chain 필수
 
-### 8. `/dispatch` 안에서만 sub-agent 직접 호출 (OS3 신규)
+### 8. `/dispatch` 안에서만 sub-agent 직접 호출 (deos 신규)
 - ticket dispatch 의 sub-agent 호출은 `/dispatch` slash command (또는 dispatch-orchestration.md 프로토콜) 안에서만
 - 자유로운 `Agent(subagent_type=...)` 호출은 research / triage / explore 용도에 한정 (예: codebase 탐색 시 Explore agent)
 - 임의 builder 호출 시 dispatch 통계/로그 단절 → orchestration 일관성 위반
@@ -81,10 +81,10 @@ IMPORTANT: Each DOD item must describe input and expected output.
 
 ---
 
-## ORCHESTRATOR ROLE (OS3 신규)
+## ORCHESTRATOR ROLE (deos 신규)
 
 CLAUDE1 main thread 는 sub-agent orchestrator. 직접 코드 작성 / 직접 PR diff 검토 모두 금지.
-위임 도구: `Agent` tool (in-session) + `os3 dispatch-codex` (subprocess for CODEX).
+위임 도구: `Agent` tool (in-session) + `deos dispatch-codex` (subprocess for CODEX).
 
 ### Sub-agent 카탈로그
 
@@ -104,13 +104,13 @@ CLAUDE1 main thread 는 sub-agent orchestrator. 직접 코드 작성 / 직접 PR
 요약:
 1. `/dispatch T=X` 호출 → ticket 조회 + owner 라우팅 (`server/dispatcher.route_by_owner`)
 2. BUILDER: `Agent(builder, prompt=ticket-body)` → Done/Block/Log 수집
-3. CODEX: `os3 dispatch-codex X` → session log Read
-4. Post-build: `T=X os3 pr-check` + `Agent(reviewer)` (병렬로 security/designer 필요 시)
+3. CODEX: `deos dispatch-codex X` → session log Read
+4. Post-build: `T=X deos pr-check` + `Agent(reviewer)` (병렬로 security/designer 필요 시)
 5. reviewer.uncertainty==true → `cross_model_codex` 자동 (b' adaptive)
 6. verdict 집계 → status update + 필요 시 questions/QUEUE.md
-7. 세션 종료 직전 done≥1 시 `os3 archive`
+7. 세션 종료 직전 done≥1 시 `deos archive`
 
-Production UI gates use agentic visual review. vendor swap 시 alias 추가 정책: provider-specific commands such as `os3 gemini` remain stable until a vendor-agnostic CLI alias is added alongside them.
+Production UI gates use agentic visual review. vendor swap 시 alias 추가 정책: provider-specific commands such as `deos gemini` remain stable until a vendor-agnostic CLI alias is added alongside them.
 
 ### Agent teams (escape hatch — 평상시 비활성)
 
@@ -247,11 +247,11 @@ Usage:
 ## DISPATCH
 
 ```bash
-os3 dispatch T-XXX      # Single ticket
-os3 dispatch-all        # All todo tickets
-os3 status              # Current state
-os3 queue               # Ticket list
-os3 archive             # Move done tickets to ARCHIVE.yaml
+deos dispatch T-XXX      # Single ticket
+deos dispatch-all        # All todo tickets
+deos status              # Current state
+deos queue               # Ticket list
+deos archive             # Move done tickets to ARCHIVE.yaml
 ```
 
 ---
@@ -266,25 +266,25 @@ QUEUE.yaml은 active 티켓(todo/doing/blocked/parked)만 유지하고, done은 
 
 **Action**:
 ```bash
-os3 archive    # python3 -m server archive thin wrapper — done 일괄 이관
+deos archive    # python3 -m server archive thin wrapper — done 일괄 이관
 ```
 
 **Lookup 사실** (BUILDER / CODEX 도 알아야 함):
 - dispatcher의 ticket lookup은 QUEUE.yaml 우선, 없으면 ARCHIVE.yaml 도 검색
-- 따라서 archive 된 ticket id 도 `os3 verify ...` / 참조 가능 (history 보존)
-- `os3 queue` / `os3 status` 출력 헤더에 `archived: N` 카운트 노출
+- 따라서 archive 된 ticket id 도 `deos verify ...` / 참조 가능 (history 보존)
+- `deos queue` / `deos status` 출력 헤더에 `archived: N` 카운트 노출
 
 ---
 
 ## SESSION END
 
 Write a session log to `devos/logs/{YYYY-MM-DD}-claude1.md` before ending.
-세션 종료 직전에 QUEUE.yaml에 done 티켓이 있으면 `os3 archive` 1회 실행.
+세션 종료 직전에 QUEUE.yaml에 done 티켓이 있으면 `deos archive` 1회 실행.
 
 ```
 Done: [plans created, tickets written, reviews done]
 Next: [ticket IDs to dispatch, reviews needed]
 Block: [Q-xxx or "none"]
 Log: devos/logs/{date}-claude1.md written
-Archive: [run `os3 archive` if QUEUE has done tickets]
+Archive: [run `deos archive` if QUEUE has done tickets]
 ```

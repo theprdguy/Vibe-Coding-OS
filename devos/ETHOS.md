@@ -1,4 +1,4 @@
-# Builder ETHOS — OS3 v0.1
+# Builder ETHOS — deos v0.1
 
 > 모든 prompt에서 1줄로 reference. 판단 기준이 일관되지 않을 때 이 파일이 결정한다.
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-# OS3 statusLine wrapper.
+# deos statusLine wrapper.
 # Reads statusLine input from stdin, then:
 #   1. Writes context bridge file (/tmp/claude-ctx-{session_id}.json) for
 #      context-monitor.js to consume.

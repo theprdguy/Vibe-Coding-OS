@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vibe Coding OS — 아키텍처 심화</title>
+<title>deos — 아키텍처 심화</title>
 <style>
   :root{--bg:#0c0f15;--panel:#11151e;--card:#161b26;--card2:#1c2230;--line:#262d3b;--ink:#e7ecf3;--ink2:#a6b1c3;--ink3:#6f7b91;--acc:#6ea8fe;--acc2:#9d7bff;--ok:#34d399;--warn:#fbbf24;--block:#fb7185;--builder:#22d3ee;--reviewer:#fb7185;--designer:#c084fc;--security:#fb923c;--codex:#34d399;--claude1:#fbbf24;--mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo",Roboto,sans-serif}
   *{box-sizing:border-box}html{scroll-behavior:smooth}
@@ -62,9 +62,9 @@
 <div class="shell">
 
 <aside>
-  <div class="brand">Vibe Coding OS</div>
+  <div class="brand">deos</div>
   <div class="ver">아키텍처 · 심화</div>
-  <div class="langs">🌐 <a href="deep-dive.en.html">English</a> · <strong>한국어</strong> · <a href="https://github.com/theprdguy/Vibe-Coding-OS">README</a></div>
+  <div class="langs">🌐 <a href="deep-dive.en.html">English</a> · <strong>한국어</strong> · <a href="https://github.com/theprdguy/deos">README</a></div>
   <nav>
     <div class="grp">개요</div>
     <a href="#tl">0 · 요약</a>
@@ -97,13 +97,13 @@
 </aside>
 
 <main>
-  <span class="kick">● Vibe Coding OS · 아키텍처</span>
+  <span class="kick">● deos · 아키텍처</span>
   <h1>이 OS가 <span class="g">실제로 작동하는 법</span></h1>
   <p class="lead">README가 요약한 부분을 한 단계 더 — 레이어·에이전트·강제 장치까지. "안전하다"가 아니라 <em>왜</em> 안전한지 이해하고 싶은 사람을 위한 글.</p>
 
 <section id="tl"><div class="wrap">
   <h2><span class="n">0</span>한 문단</h2>
-  <p class="lead2">Vibe Coding OS는 "AI에게 코드를 시키는 일"을 <strong>감사 가능한 상태 기계</strong>로 바꿉니다. 모든 진실은 <code>devos/</code> 아래 파일에 있고, 일은 <strong>티켓</strong>으로만 움직이며, 누가 무엇을 왜 했는지는 티켓별 전이 이력과 세션 로그에 남습니다.</p>
+  <p class="lead2">deos는 "AI에게 코드를 시키는 일"을 <strong>감사 가능한 상태 기계</strong>로 바꿉니다. 모든 진실은 <code>devos/</code> 아래 파일에 있고, 일은 <strong>티켓</strong>으로만 움직이며, 누가 무엇을 왜 했는지는 티켓별 전이 이력과 세션 로그에 남습니다.</p>
   <div class="card"><p style="margin:0;color:var(--ink)">사용자(PM)가 의도를 말한다 → <span class="c1">CLAUDE1</span>이 <strong>티켓</strong>으로 분해하고 빠진 에러·엣지·보안 케이스를 캐묻는다 → 사용자가 plan을 <strong>승인</strong>한다 → 티켓 owner(<span class="b">builder</span> 세션 내 / <span class="cx">CODEX</span> 외부)가 구현한다 → 베이스라인 게이트 + <strong>읽기 전용</strong> 리뷰 보드가 검토한다 → 위험·불확실하면 다른 벤더(<span class="cx">CODEX b'</span>)가 2차 의견 → BLOCKER 없으면 <code>done</code>, 있으면 <code>blocked</code> + 결정 큐.</p></div>
 </div></section>
 
@@ -158,13 +158,13 @@
                | intake 체크리스트 (빠진 에러/엣지/보안 강제 질문)
                | user journey 추출 -> 티켓 분해
                v
-       plans/pending/  --사용자: os3 approve-->  tasks/QUEUE.yaml
+       plans/pending/  --사용자: deos approve-->  tasks/QUEUE.yaml
                                                    |
-                              os3 dispatch T-XXX   v
+                              deos dispatch T-XXX   v
           owner=BUILDER -> 세션 내 sub-agent      owner=CODEX -> subprocess
                                  | 구현
                                  v
-          os3 pr-check (시크릿 · 계약 · 범위 · 세션로그 · TDD)
+          deos pr-check (시크릿 · 계약 · 범위 · 세션로그 · TDD)
                                  v
           리뷰 보드 (reviewer/security/designer — 읽기전용, 티켓 유형별)
                                  v
@@ -235,34 +235,34 @@
   <h2><span class="n">9</span>host-OS 모델</h2>
   <p>엔진·에이전트·도리는 호스트 레포에 <strong>한 번만</strong> 존재. 각 제품은 <code>projects/</code> 아래 독립 git 레포로, 자기 코드와 task 상태만 보유.</p>
   <div class="diagram"><pre>~/dev-os/            호스트 = 엔진 · 도리 · 공유 .claude (git 1개)
-|-- server/  bin/os3  .claude/  devos/
+|-- server/  bin/deos  .claude/  devos/
 `-- projects/        (호스트가 git-ignore — 각자 독립 레포)
-    |-- product-a/   apps/ packages/ + 자기 devos/tasks · PROJECT_STATE · .os3.yaml
+    |-- product-a/   apps/ packages/ + 자기 devos/tasks · PROJECT_STATE · .deos.yaml
     `-- product-b/   ...</pre></div>
   <ul>
     <li><strong>엔진은 1곳</strong> — 고치면 전 프로젝트 적용. sync 없음.</li>
     <li><strong>프로젝트는 독립</strong> — 자기 레포·상태, 따로 배포.</li>
-    <li><strong>진입은 하나</strong> — <code>os3 open &lt;name&gt;</code>이 호스트 설정을 달고 진입.</li>
+    <li><strong>진입은 하나</strong> — <code>deos open &lt;name&gt;</code>이 호스트 설정을 달고 진입.</li>
   </ul>
   <p class="muted">단일 프로젝트로 써도 됨 — <code>devos/</code>를 상태로 쓰고 <code>projects/</code> 무시. host-OS는 여러 제품으로 확장하는 방식.</p>
 </div></section>
 
 <section id="feedback"><div class="wrap">
   <h2><span class="n">10</span>OS-feedback 루프</h2>
-  <p>OS는 자기를 <strong>demand-pulled</strong>로 개선합니다: 제품 작업 중 마찰을 <code>os3 feedback "..."</code>로 <code>devos/os-feedback/INBOX.md</code>에 포착하고, 세션 시작 시 검토하고, 주기적 consolidation 패스에서 티켓으로 전환.</p>
+  <p>deos는 자기를 <strong>demand-pulled</strong>로 개선합니다: 제품 작업 중 마찰을 <code>deos feedback "..."</code>로 <code>devos/os-feedback/INBOX.md</code>에 포착하고, 세션 시작 시 검토하고, 주기적 consolidation 패스에서 티켓으로 전환.</p>
   <div class="note"><span class="l">왜 load-bearing인가</span><p>OS 개선이 "제품 마찰에서" 온다면 그 마찰을 <em>포착</em>해야 합니다 — 안 그러면 채팅에서 한 번 말하고 증발. 반응적 수정은 부딪힌 것만 잡고, 주기적 consolidation은 안 밟는 잠재 부채를 잡습니다.</p></div>
 </div></section>
 
 <section id="cli"><div class="wrap">
   <h2><span class="n">11</span>명령어</h2>
-  <pre><code>os3 open &lt;project&gt;        프로젝트 세션 진입 (호스트 설정 주입)
-os3 status / queue       상태 · 활성 티켓
-os3 approve / reject     플랜 승인·반려
-os3 dispatch T-XXX       티켓을 owner로 라우팅
-os3 pr-check             베이스라인 게이트
-os3 archive              done 티켓 → ARCHIVE.yaml
-os3 dashboard            로컬 읽기전용 칸반 (127.0.0.1:8787)
-os3 feedback "..."       OS 마찰을 INBOX에 포착</code></pre>
+  <pre><code>deos open &lt;project&gt;        프로젝트 세션 진입 (호스트 설정 주입)
+deos status / queue       상태 · 활성 티켓
+deos approve / reject     플랜 승인·반려
+deos dispatch T-XXX       티켓을 owner로 라우팅
+deos pr-check             베이스라인 게이트
+deos archive              done 티켓 → ARCHIVE.yaml
+deos dashboard            로컬 읽기전용 칸반 (127.0.0.1:8787)
+deos feedback "..."       OS 마찰을 INBOX에 포착</code></pre>
 </div></section>
 
 <section id="engine"><div class="wrap">
@@ -293,7 +293,7 @@ os3 feedback "..."       OS 마찰을 INBOX에 포착</code></pre>
       <tr><td><code>.archive-index.lock</code></td><td>archive-index 재빌드</td><td>sentinel과 <strong>별개</strong>라 재인덱싱이 dispatch를 막지 않음</td></tr>
     </tbody>
   </table>
-  <p class="muted">분리는 의도된 설계: archive <em>이관</em>은 dispatch를 멈춰야 하지만 인덱스 <em>재빌드</em>는 그럴 필요가 없습니다. 그 인덱스가 <code>os3 lookup</code>이 archive된 티켓을 찾게 해주고, 인덱스도 원자적으로 재빌드됩니다.</p>
+  <p class="muted">분리는 의도된 설계: archive <em>이관</em>은 dispatch를 멈춰야 하지만 인덱스 <em>재빌드</em>는 그럴 필요가 없습니다. 그 인덱스가 <code>deos lookup</code>이 archive된 티켓을 찾게 해주고, 인덱스도 원자적으로 재빌드됩니다.</p>
 </div></section>
 
 <section id="memory"><div class="wrap">
@@ -382,7 +382,7 @@ Blocking: yes | no
 <section id="metrics"><div class="wrap">
   <h2><span class="n">17</span>측정 — 비용 · 점수 카드 · paired-run</h2>
   <h3>비용 채널</h3>
-  <p><code>os3 cost-report</code>가 디스패치 로그를 세 채널로 집계해 비용을 추정합니다: <strong>C1</strong> interactive(reviewer / security / designer), <strong>C2</strong> agent-SDK(더 싼 배치 리뷰), <strong>C0</strong> 외부 CODEX(구현 + b' 2차 의견). 한 채널이 크레딧의 ~80%를 넘으면 경고 — "어느 모델에 얼마나 리뷰를 시켰나"를 돈으로 환산.</p>
+  <p><code>deos cost-report</code>가 디스패치 로그를 세 채널로 집계해 비용을 추정합니다: <strong>C1</strong> interactive(reviewer / security / designer), <strong>C2</strong> agent-SDK(더 싼 배치 리뷰), <strong>C0</strong> 외부 CODEX(구현 + b' 2차 의견). 한 채널이 크레딧의 ~80%를 넘으면 경고 — "어느 모델에 얼마나 리뷰를 시켰나"를 돈으로 환산.</p>
   <h3>4축 점수 카드 (격주)</h3>
   <p>Phase ship 직후 + 격주로 4축을 기록해 균형을 감시합니다. 각 축의 ship/위험 임계:</p>
   <table>
@@ -404,11 +404,11 @@ Blocking: yes | no
   <h2><span class="n">18</span>파일 지도</h2>
   <p>호스트 레포에서 무엇이 어디에 있나 (generic 트리):</p>
   <div class="diagram"><pre>~/dev-os/                        # 호스트 = 엔진 · 도리 · 공유 .claude (git 1개)
-├── bin/os3                      # 단일 진입점
+├── bin/deos                     # 단일 진입점
 ├── server/                      # 엔진 (Python)
 │   ├── dispatcher.py            # 라우팅+실행의 심장
 │   ├── ssot.py                  # QUEUE / 상태 / SSOT 읽기+쓰기
-│   ├── cli.py                   # os3 서브커맨드 레지스트리
+│   ├── cli.py                   # deos 서브커맨드 레지스트리
 │   ├── dashboard.py             # 로컬 읽기전용 칸반 (:8787)
 │   └── gemini_dispatcher.py     # 시각 검토 채널
 ├── .claude/
@@ -429,7 +429,7 @@ Blocking: yes | no
 │   ├── logs/{date}-{agent}.md   # 세션 로그 (+ learnings, dispatch, gemini)
 │   └── docs/{ADR,API_CONTRACT,UI_CONTRACT,policy/,...}
 └── projects/                    # 호스트 git이 ignore — 각자 독립 레포
-    ├── product-a/   apps/ packages/ + 자기 QUEUE / PROJECT_STATE / .os3.yaml
+    ├── product-a/   apps/ packages/ + 자기 QUEUE / PROJECT_STATE / .deos.yaml
     └── product-b/   ...</pre></div>
   <p class="muted">호스트 레포는 git 1개; <code>projects/</code> 아래 각 제품은 독립이고 호스트가 ignore합니다(§9). 엔진 하나, 제품 여럿.</p>
 </div></section>
@@ -452,7 +452,7 @@ Blocking: yes | no
   </tbody></table>
 </div></section>
 
-<div class="foot"><div class="wrap">Vibe Coding OS — 아키텍처 심화 · <a href="deep-dive.en.html">English</a> · <a href="https://github.com/theprdguy/Vibe-Coding-OS">README</a><br>권위 있는 규칙은 <code>devos/AI.md</code>, <code>ETHOS.md</code>, <code>docs/policy/</code>에 있으며, 이 페이지는 해설입니다.</div></div>
+<div class="foot"><div class="wrap">deos — 아키텍처 심화 · <a href="deep-dive.en.html">English</a> · <a href="https://github.com/theprdguy/deos">README</a><br>권위 있는 규칙은 <code>devos/AI.md</code>, <code>ETHOS.md</code>, <code>docs/policy/</code>에 있으며, 이 페이지는 해설입니다.</div></div>
 </main>
 
 </div>

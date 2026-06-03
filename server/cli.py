@@ -1,4 +1,4 @@
-"""server/cli.py — argparse unified CLI router for OS3."""
+"""server/cli.py — argparse unified CLI router for deos."""
 from __future__ import annotations
 
 import argparse
@@ -18,16 +18,12 @@ from server.cli_gemini import (
 )
 from server.cli_reports import handle_cost_report, handle_pilot_status
 
-logger = logging.getLogger("os3.cli")
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+logger = logging.getLogger("deos.cli")
 
-# format_queue_with_header canonical home is server.ssot; re-exported here for CLI use.
 from server.ssot import _QUEUE_HEADER_STATUSES as QUEUE_HEADER_STATUSES, format_queue_with_header  # noqa: F401
-
 
 _PROJECT: str | None = None  # set by main() from --project; consumed by _load()
 _INVOCATION_CWD: Path | None = None  # captured once in main() via _invocation_cwd()
-
 
 def _load() -> tuple:
     from server.config import ProjectResolutionError, resolve_paths
@@ -39,7 +35,7 @@ def _load() -> tuple:
         sys.exit(1)
     except FileNotFoundError:
         print("error: no project resolved — pass --project <name>, "
-              "run inside a project dir (.os3.yaml), or run from the host root", file=sys.stderr)
+              "run inside a project dir (.deos.yaml), or run from the host root", file=sys.stderr)
         sys.exit(1)
 
 
@@ -52,34 +48,28 @@ def _validate_ticket_id_arg(ticket_id: str) -> str:
         sys.exit(1)
     return ticket_id
 
-
 def _handle_queue(args):
     _c, paths = _load()
     print(format_queue_with_header(paths["queue"])); return 0
-
 def _handle_status(args):
     from server.ssot import format_status_summary, read_archive
     _c, paths = _load()
     archived = len(read_archive(paths["queue"]).get("tickets", []))
     print(f"archived: {archived}")
     print(format_status_summary(paths["devos"])); return 0
-
 def _handle_pending(args):
     from server.approval import ApprovalManager
     _c, paths = _load()
     print(ApprovalManager(paths["plans"], paths["queue"]).format_pending_summary()); return 0
-
 def _handle_logs(args):
     from server.ssot import format_logs_summary
     _c, paths = _load()
     print(format_logs_summary(paths["logs"])); return 0
 
-
 def _handle_dashboard(args):
     from server.config import host_root
     from server.dashboard import serve
     return serve(host_root(), port=args.port, open_browser=not args.no_open)
-
 
 def _handle_archive(args):
     from server.ssot import ArchiveLockError, archive_done_tickets
@@ -91,7 +81,6 @@ def _handle_archive(args):
         return 1
     print("no done tickets to archive" if moved == 0 else f"archived {moved} done tickets")
     return 0
-
 
 def _handle_dispatch(args):
     ticket_id = _validate_ticket_id_arg(args.ticket_id)
@@ -127,7 +116,6 @@ def _handle_dispatch(args):
         return exc.exit_code
     return 0
 
-
 def _handle_dispatch_all(args):
     config, paths = _load()
     from server.dispatcher import Dispatcher, DispatcherSingletonError, acquire_dispatcher_singleton
@@ -144,10 +132,7 @@ def _handle_dispatch_all(args):
         print(f"  {tid}: {msg}")
     return 0
 
-
 def _handle_dispatch_codex(args):
-    # W2: owner routing consistency — dispatch-codex is CODEX-only.
-    # Non-CODEX-owned tickets must be rejected to keep Makefile semantics consistent.
     ticket_id = _validate_ticket_id_arg(args.ticket_id)
     config, paths = _load()
     from server.dispatcher import (
@@ -164,7 +149,7 @@ def _handle_dispatch_codex(args):
         if owner.upper() != "CODEX":
             print(
                 f"error: dispatch-codex requires owner=CODEX; ticket {ticket_id} has owner={owner!r}. "
-                "Use 'os3 dispatch' for non-CODEX tickets.",
+                "Use 'deos dispatch' for non-CODEX tickets.",
                 file=sys.stderr,
             )
             return 1
@@ -179,11 +164,8 @@ def _handle_dispatch_codex(args):
         return exc.exit_code
     return 0
 
-
 def _handle_owner(args):
-    # W1: expose owner routing from __main__.py lines 242-260
     ticket_id = _validate_ticket_id_arg(args.ticket_id)
-    # T= prefix compat (Makefile 호환)
     if ticket_id.startswith("T="):
         ticket_id = ticket_id[2:]
     _c, paths = _load()
@@ -200,16 +182,13 @@ def _handle_owner(args):
     print(ticket.get("owner", ""))
     return 0
 
-
 def _handle_cross_model_codex(args):
-    # B1: expose cross-model-codex subcommand (b' adaptive trigger)
     ticket_id = _validate_ticket_id_arg(args.ticket_id)
     reason = getattr(args, "reason", None) or "uncertainty flag from reviewer/security sub-agent"
     from server.dispatcher import cross_model_codex
     import yaml as _yaml
     result = cross_model_codex(ticket_id, reason)
     print(_yaml.safe_dump(result, allow_unicode=True, sort_keys=False), end=""); return 0 if not result.get("fallback") else 2
-
 
 def _handle_next(args):
     from server.ssot import read_queue_with_archive
@@ -218,14 +197,12 @@ def _handle_next(args):
     if not todos: print("no todo tickets"); return 0
     print(f"{todos[0].get('id')} — {todos[0].get('goal', '')[:80]}"); return 0
 
-
 def _handle_dispatch_next(args):
     from server.ssot import read_queue_with_archive
     _c, paths = _load()
     todos = [t for t in read_queue_with_archive(paths["queue"]).get("tickets", []) if t.get("status") == "todo"]
     if not todos: print("no todo tickets"); return 0
     return _handle_dispatch(argparse.Namespace(ticket_id=todos[0]["id"]))
-
 
 def _handle_verify(args):
     ticket_id = _validate_ticket_id_arg(args.ticket_id)
@@ -364,7 +341,7 @@ def _handle_reject(args):
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="os3", description="OS3 — single entry point")
+    parser = argparse.ArgumentParser(prog="deos", description="deos - single entry point")
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--project", metavar="<name>", default=None,
                         help="Target project under host projects/ (default: cwd/host)")
@@ -384,7 +361,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     _cmd("queue",        "List active tickets",               _handle_queue)
     _cmd("status",       "Show overall project status",       _handle_status)
-    _cmd("pilot-status", "Show OS3 E2E pilot readiness", handle_pilot_status, _add_strict)
+    _cmd("pilot-status", "Show deos E2E pilot readiness", handle_pilot_status, _add_strict)
     _cmd("pending",      "Show pending plan approvals",       _handle_pending)
     _cmd("logs",         "Show session log summary",          _handle_logs)
     _cmd("archive",      "Archive done tickets",              _handle_archive)

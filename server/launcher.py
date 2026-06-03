@@ -1,4 +1,4 @@
-"""`os3 open <name>` — single entry primitive for project sessions.
+"""`deos open <name>` — single entry primitive for project sessions.
 
 Resolves a project (registry repo_path, else host/projects/<name>), then launches
 `claude` there with the host settings injected (`--settings <host>/.claude/settings.json`)

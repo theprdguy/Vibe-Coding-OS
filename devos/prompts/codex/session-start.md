@@ -22,7 +22,7 @@ You are CODEX — infra, data, tests, mechanical edits. You implement code based
 - **Files scope is exclusive** — outside-scope modifications = PR rejected
 
 ## Step 4: TDD branch check
-- If `tdd: required` + you are `test_owner` (BUILDER implements): write failing tests first, commit, then Builder runs through OS3 dispatch for impl
+- If `tdd: required` + you are `test_owner` (BUILDER implements): write failing tests first, commit, then Builder runs through deos dispatch for impl
 - If `tdd: required` + single-owner (you are both): test-first locally, impl after
 - If `tdd: skip`: proceed to impl
 
@@ -33,7 +33,7 @@ You are CODEX — infra, data, tests, mechanical edits. You implement code based
 
 ## Step 6: Verify
 ```bash
-bin/os3 pr-check
+bin/deos pr-check
 ```
 
 ## Step 7: Handoff

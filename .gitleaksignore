@@ -1,0 +1,11 @@
+# Known false-positive test fixture fingerprints for Gemini redaction tests.
+6d3a08e81f1cf5da1c0852b5bfa28f8873ee700a:tests/test_gemini_dispatcher.py:generic-api-key:1965
+6d3a08e81f1cf5da1c0852b5bfa28f8873ee700a:tests/test_gemini_dispatcher.py:slack-legacy-workspace-token:1965
+6d3a08e81f1cf5da1c0852b5bfa28f8873ee700a:tests/test_gemini_dispatcher.py:gitlab-pat:1415
+6d3a08e81f1cf5da1c0852b5bfa28f8873ee700a:tests/test_gemini_dispatcher.py:gitlab-pat:1434
+
+# Q-004-followup (2026-05-27): dummy token quoted inside a "False positive 확정"
+# resolution note in questions/QUEUE.md (not a real Slack token). Same class as
+# the Q-004 dispatch-log false positive. Working-tree copy redacted to a placeholder
+# in the same commit; this fingerprint covers the historical commit caf6d2cc.
+caf6d2cc391c35f362c3c8a10712664b1a3c0e82:devos/questions/QUEUE.md:slack-legacy-workspace-token:116

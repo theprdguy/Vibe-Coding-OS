@@ -21,7 +21,7 @@ def _resolve_project_root(args) -> Optional[Path]:
     """Resolve the project root from the outer CLI's --project flag.
 
     T-OS3-GEMINI-TEMPLATE-SYNC (DOD-2): propagate the resolved project_root
-    from the outer `os3 --project <name>` flag down to gemini_dispatcher._cli_main.
+    from the outer `deos --project <name>` flag down to gemini_dispatcher._cli_main.
     Returns None when --project was not provided (env-based fallback applies).
     """
     project_name: Optional[str] = getattr(args, "project", None)

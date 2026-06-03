@@ -1,0 +1,27 @@
+title = "OS3 gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Historical OS3 forensic logs and ticket prose with documented dummy credential samples only."
+condition = "AND"
+paths = [
+  '''^devos/logs/2026-05-16-codex-T-OS3-PILOT-01\.md$''',
+  '''^devos/logs/2026-05-17-codex-T-OS3-INFRA-DESTRUCTIVE-GIT-GUARD\.md$''',
+  '''^devos/logs/dispatch/.*\.log$''',
+  '''^devos/tasks/QUEUE\.yaml$''',
+  '''^devos/tasks/ARCHIVE\.yaml$''',
+]
+regexes = [
+  '''xoxa-2-abcdefg[h]''',
+  '''glpat-abc123def456ghi789j[k]''',
+  '''glpat-xxxx_yyyy_zzzz_aaaa[_]''',
+]
+
+[[allowlists]]
+description = "Test fixture files containing documented dummy credentials for redaction unit tests. Mode-agnostic path allowlist: works in both git-history and dir (no-git) mode, independent of .gitleaksignore SHA-fingerprint guards. No ^ anchor so pattern matches both relative and absolute path arguments passed to gitleaks dir."
+paths = [
+  '''tests/test_gemini_dispatcher\.py$''',
+  '''devos/questions/QUEUE\.md$''',
+]

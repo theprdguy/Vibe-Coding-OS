@@ -1,4 +1,4 @@
-# OS3 Role Authority Matrix
+# deos Role Authority Matrix
 
 Status: draft
 

@@ -12,7 +12,7 @@ assignees: ''
 
 **Command / action:**
 ```
-os3 ...
+deos ...
 ```
 
 **Error output:**
@@ -27,7 +27,7 @@ os3 ...
 - Python version: <!-- python3 --version -->
 - Claude Code version: <!-- claude --version -->
 - Codex CLI version (if relevant): <!-- codex --version -->
-- OS3 version: <!-- cat devos/VERSION.txt -->
+- deos version: <!-- cat devos/VERSION.txt -->
 
 ## Reproduction steps
 

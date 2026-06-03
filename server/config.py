@@ -1,4 +1,4 @@
-"""Configuration loader for OS3 server."""
+"""Configuration loader for deos server."""
 from __future__ import annotations
 
 import os
@@ -31,7 +31,7 @@ def _resolve_named_project_dir(host: Path, name: str) -> Path:
     2. Fallback: ``host/projects/<name>`` (pre-registration / empty repo_path).
 
     This is the single source of truth shared by ``resolve_project_root`` and
-    ``launcher._resolve_project_dir`` so that ``os3 open`` and ``os3 dispatch``
+    ``launcher._resolve_project_dir`` so that ``deos open`` and ``deos dispatch``
     always resolve to the same directory.
     """
     from server.projects_registry import list_projects
@@ -49,7 +49,8 @@ def resolve_project_root(project: str | None, *, cwd: Path, host: Path) -> Path:
 
     Precedence:
     - Explicit name: registry repo_path (absolute/host-relative) → host/projects/<name> fallback.
-    - No name: cwd upward .os3.yaml marker search (stops at host root).
+    - No name: cwd upward marker search (stops at host root).
+      Marker: .deos.yaml only.
     """
     if project:
         host = Path(host).resolve()
@@ -60,7 +61,7 @@ def resolve_project_root(project: str | None, *, cwd: Path, host: Path) -> Path:
     cur = Path(cwd).resolve()
     host = Path(host).resolve()
     for d in (cur, *cur.parents):
-        if (d / ".os3.yaml").is_file():
+        if (d / ".deos.yaml").is_file():
             return d
         if d == host:
             break  # stop at host root; project markers live under host/projects/
@@ -69,8 +70,8 @@ def resolve_project_root(project: str | None, *, cwd: Path, host: Path) -> Path:
     )
 
 
-def load_config(config_path: str = "osn.yaml") -> dict:
-    """Load osn.yaml compatibility configuration."""
+def load_config(config_path: str = "deos.yaml") -> dict:
+    """Load host configuration from deos.yaml."""
     path = Path(config_path)
     if not path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
@@ -90,13 +91,17 @@ def _deep_merge(base: dict, overlay: dict) -> dict:
 
 
 def load_layered_config(*, project_root: Path, host: Path) -> dict:
-    """Load host osn.yaml defaults, deep-merged with project .os3.yaml overrides."""
-    host_cfg_path = host / "osn.yaml"
+    """Load host config defaults, deep-merged with project overlay.
+
+    Host config: deos.yaml only.
+    Project overlay: .deos.yaml only.
+    """
+    host_cfg_path = host / "deos.yaml"
     if not host_cfg_path.is_file():
-        raise FileNotFoundError(f"host config not found: {host_cfg_path}")
+        raise FileNotFoundError(f"host config not found: {host / 'deos.yaml'}")
     with open(host_cfg_path) as f:
         config = yaml.safe_load(f) or {}
-    overlay_path = project_root / ".os3.yaml"
+    overlay_path = project_root / ".deos.yaml"
     if overlay_path.is_file():
         with open(overlay_path) as f:
             overlay = yaml.safe_load(f) or {}
@@ -123,7 +128,7 @@ def get_paths(config: dict, project_root: Path | None = None) -> dict:
 def resolve_paths(project: str | None, *, cwd: Path) -> tuple[dict, dict]:
     """Resolve (config, paths) for the target project.
 
-    With an explicit `project` name or a cwd `.os3.yaml` marker, load the layered
+    With an explicit `project` name or a cwd `.deos.yaml` marker, load the layered
     host+project config rooted at that project. Otherwise fall back to the legacy
     cwd-relative loader (host-maintenance / pre-migration behavior).
     """

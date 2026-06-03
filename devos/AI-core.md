@@ -1,4 +1,4 @@
-# AI Operating Rules — Sub-agent Boot Slim (OS3 v0.1)
+# AI Operating Rules — Sub-agent Boot Slim (deos v0.1)
 
 > Sub-agent (builder/reviewer/security/designer) 첫 동작용 발췌.
 > 전문 (Memory triggers, Testing Policy 8 항, Mutation 절차, SSOT precedence 표,
@@ -12,7 +12,7 @@
 
 | Agent | Role | Mode | Can Modify | Cannot Modify |
 |-------|------|------|-----------|---------------|
-| **CLAUDE1 main** | Planner + Researcher + SSOT manager + Orchestrator | interactive | devos/**, .claude/**, AGENTS.md, osn.yaml (compatibility filename), server/** (bootstrap 한시) | apps/**, packages/**, scripts/**, infra/**, tests/** |
+| **CLAUDE1 main** | Planner + Researcher + SSOT manager + Orchestrator | interactive | devos/**, .claude/**, AGENTS.md, deos.yaml, server/** (bootstrap 한시) | apps/**, packages/**, scripts/**, infra/**, tests/** |
 | **builder** (sub) | App + platform implementer | in-session | apps/api/src/**, apps/web/**, packages/shared/** | devos/tasks/QUEUE.yaml, devos/PROJECT_STATE.md |
 | **reviewer** (sub) | Adversarial PR reviewer | in-session, READ-ONLY | (none) | (everything) |
 | **designer** (sub) | UI/UX 1차 필터 | in-session, READ-ONLY | (none) | (everything) |
@@ -47,20 +47,20 @@
 
 **dispatcher 가 ticket 을 prompt header 에 inline 으로 전달함.** sub-agent 는
 QUEUE.yaml 추가 Read 불필요 — cross-ticket 참조 (deps sibling 등) 가 필요할 때만.
-**ARCHIVE.yaml 자동 Read 금지** (306 KB 트랩) — `bin/os3 lookup --archive {id}` 사용.
+**ARCHIVE.yaml 자동 Read 금지** (306 KB 트랩) — `bin/deos lookup --archive {id}` 사용.
 
 ## Non-negotiables
 
 - 1 PR = 1 Ticket
 - Ownership: only the ticket owner may modify files in `ticket.files`
 - Contract-first: API/UI 변경 시 `devos/docs/{API,UI}_CONTRACT.md` 동시 갱신
-- Done = all gates pass (`bin/os3 pr-check`)
+- Done = all gates pass (`bin/deos pr-check`)
 - Session log written before ending — `devos/logs/{YYYY-MM-DD}-{agent}-{ticket-ids}.md`
-- Production UI gates use agentic visual review. vendor swap 시 alias 추가 정책: provider-specific commands such as `bin/os3 gemini` remain stable until a vendor-agnostic CLI alias is added alongside them.
+- Production UI gates use agentic visual review. vendor swap 시 alias 추가 정책: provider-specific commands such as `bin/deos gemini` remain stable until a vendor-agnostic CLI alias is added alongside them.
 
 ## Projects Registry Policy (host-OS)
 
-- Host OS tracks projects via a **read-only** registry: `devos/projects/{name}.md` (`bin/os3 register` / `bin/os3 projects`). The host reads project state; it never pushes into projects.
+- Host OS tracks projects via a **read-only** registry: `devos/projects/{name}.md` (`bin/deos register` / `bin/deos projects`). The host reads project state; it never pushes into projects.
 - The old push-based `consumer sync` is **removed** (host-OS migration decision #3): with a single host engine there is no OS copy to sync. Project state (`apps/`, `packages/`, `devos/tasks/*`, `PROJECT_STATE.md`, `CONTEXT.md`) is owned by each project repo.
 - Transitional: `devos/consumers/{name}.md` records are preserved until Phase 4 relocates projects under `host/projects/` and supersedes them.
 

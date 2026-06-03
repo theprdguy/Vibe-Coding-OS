@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dev-os 내부 구조 레퍼런스 — A to Z</title>
+<style>
+  :root{
+    --bg:#0c0f15; --panel:#11151e; --card:#161b26; --card2:#1c2230; --line:#262d3b;
+    --ink:#e7ecf3; --ink2:#a6b1c3; --ink3:#6f7b91; --ink4:#4d586c;
+    --acc:#6ea8fe; --acc2:#9d7bff; --ok:#34d399; --warn:#fbbf24; --block:#fb7185; --info:#38bdf8;
+    --builder:#22d3ee; --reviewer:#fb7185; --designer:#c084fc; --security:#fb923c; --codex:#34d399; --claude1:#fbbf24;
+    --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Pretendard","Apple SD Gothic Neo",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.68;font-size:15.5px;-webkit-font-smoothing:antialiased}
+  a{color:var(--acc);text-decoration:none} a:hover{text-decoration:underline}
+  code{font-family:var(--mono);font-size:.85em;background:#080b11;border:1px solid var(--line);border-radius:4px;padding:.08em .38em;color:#bfe3ff}
+  pre{font-family:var(--mono);font-size:12.5px;line-height:1.62;background:#080b11;border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;color:#ccd6e4}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  .muted{color:var(--ink3)} .dim{color:var(--ink4)}
+
+  /* layout: sidebar + content */
+  .shell{display:grid;grid-template-columns:248px 1fr;max-width:1280px;margin:0 auto;min-height:100vh}
+  aside{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:var(--panel);padding:22px 16px}
+  aside .brand{font-weight:800;font-size:15px;letter-spacing:-.01em;margin-bottom:2px}
+  aside .ver{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-bottom:18px}
+  aside nav a{display:block;font-size:13px;color:var(--ink3);padding:5px 9px;border-radius:7px;line-height:1.35}
+  aside nav a:hover{color:var(--ink);background:var(--card);text-decoration:none}
+  aside nav .grp{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink4);margin:16px 9px 5px;font-weight:700}
+  main{padding:40px 44px 100px;min-width:0;max-width:920px}
+  @media(max-width:880px){.shell{grid-template-columns:1fr}aside{display:none}main{padding:28px 20px 70px}}
+
+  h1.title{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+  .subtitle{color:var(--ink2);font-size:16px;margin:0 0 6px}
+  .doc-meta{font-family:var(--mono);font-size:11.5px;color:var(--ink4);margin:14px 0 0;padding-top:14px;border-top:1px solid var(--line)}
+
+  section{padding:34px 0;border-top:1px solid var(--line);scroll-margin-top:14px}
+  section:first-of-type{border-top:none}
+  h2{font-size:23px;font-weight:800;letter-spacing:-.015em;margin:0 0 6px;display:flex;align-items:baseline;gap:10px}
+  h2 .hsh{font-family:var(--mono);font-size:14px;color:var(--acc2);font-weight:600}
+  h3{font-size:17px;font-weight:700;margin:26px 0 8px;letter-spacing:-.01em;color:var(--ink)}
+  h4{font-size:14.5px;font-weight:700;margin:18px 0 6px;color:var(--ink)}
+  p{color:var(--ink2);margin:0 0 13px}
+  ul,ol{color:var(--ink2);padding-left:20px;margin:0 0 13px} li{margin:5px 0}
+  strong{color:var(--ink);font-weight:650}
+  .lead{font-size:16px;color:var(--ink);margin-bottom:16px}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--ink);font-weight:700;background:var(--card2);white-space:nowrap;position:sticky;top:0}
+  td{color:var(--ink2)} td code{white-space:nowrap}
+  tr:hover td{background:rgba(255,255,255,.014)}
+  table.fixed{display:table;table-layout:auto}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
+  .grid{display:grid;gap:13px} .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+
+  .note{border-left:3px solid var(--line);background:var(--card);border-radius:0 10px 10px 0;padding:12px 16px;margin:14px 0}
+  .note .lbl{font-weight:800;font-size:11px;letter-spacing:.07em;text-transform:uppercase;display:block;margin-bottom:4px}
+  .note p:last-child{margin-bottom:0}
+  .note.key{border-color:var(--acc)} .note.key .lbl{color:var(--acc)}
+  .note.warn{border-color:var(--warn)} .note.warn .lbl{color:var(--warn)}
+  .note.danger{border-color:var(--block)} .note.danger .lbl{color:var(--block)}
+  .note.ok{border-color:var(--ok)} .note.ok .lbl{color:var(--ok)}
+  .note.miss{border-color:var(--info);background:linear-gradient(180deg,rgba(56,189,248,.06),var(--card))} .note.miss .lbl{color:var(--info)}
+
+  .chip{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);background:#080b11;color:var(--ink2);white-space:nowrap}
+  .chip.ok{color:var(--ok);border-color:#1f5443} .chip.warn{color:var(--warn);border-color:#5e4a1c}
+  .chip.block{color:var(--block);border-color:#5e2a32} .chip.dim{color:var(--ink3)}
+  .b{color:var(--builder)} .r{color:var(--reviewer)} .d{color:var(--designer)} .s{color:var(--security)} .cx{color:var(--codex)} .c1{color:var(--claude1)}
+
+  .kv{display:grid;grid-template-columns:140px 1fr;gap:2px 14px;font-size:13.5px;margin:10px 0}
+  .kv dt{color:var(--ink3);font-family:var(--mono);font-size:12px} .kv dd{margin:0;color:var(--ink2)}
+
+  .statemap{font-family:var(--mono);font-size:12px;line-height:1.9;background:#080b11;border:1px solid var(--line);border-radius:10px;padding:16px 18px;overflow-x:auto;white-space:pre;color:#aebbd0}
+
+  .flow{counter-reset:s;margin:16px 0}
+  .flow .row{display:grid;grid-template-columns:30px 1fr;gap:13px;padding-bottom:14px;position:relative}
+  .flow .row:not(:last-child)::before{content:"";position:absolute;left:14px;top:30px;bottom:0;width:1.5px;background:var(--line)}
+  .flow .row .n{counter-increment:s;width:30px;height:30px;border-radius:8px;background:var(--card2);border:1px solid var(--line);color:var(--acc);font-family:var(--mono);font-size:13px;font-weight:700;display:grid;place-items:center;z-index:1}
+  .flow .row .n::before{content:counter(s)}
+  .flow .row .bd h4{margin:3px 0 3px} .flow .row .bd p{margin:0;font-size:13.5px}
+  hr.s{border:none;border-top:1px solid var(--line);margin:24px 0}
+  .foot{color:var(--ink4);font-size:12.5px;margin-top:40px;padding-top:18px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside>
+  <div class="brand">dev-os 내부 레퍼런스</div>
+  <div class="ver">host-OS v1 · OS3 v0.1</div>
+  <nav>
+    <div class="grp">기초</div>
+    <a href="#tl">0 · 한 장 요약</a>
+    <a href="#model">1 · 3층 정신모델</a>
+    <div class="grp">기억하는 법</div>
+    <a href="#ssot">2 · SSOT 위계</a>
+    <a href="#statefiles">3 · 상태 파일들</a>
+    <a href="#memory">4 · 세션 경계 기억</a>
+    <div class="grp">일의 구조</div>
+    <a href="#ticket">5 · 티켓 해부</a>
+    <a href="#status">6 · 상태 머신 + 감사</a>
+    <a href="#lifecycle">7 · PRD→done 흐름</a>
+    <a href="#dispatch">8 · 디스패치 7단계</a>
+    <a href="#review">9 · 검토 · 교차검증</a>
+    <div class="grp">동작 모드</div>
+    <a href="#modes">10 · 동작 모드 (3종)</a>
+    <a href="#modegate">11 · 모드별 게이트 · 웨이버</a>
+    <div class="grp">문제 관리</div>
+    <a href="#problems">12 · 막힘·질문·이슈</a>
+    <a href="#incident">13 · 사고 → 잠긴결정</a>
+    <div class="grp">강제 장치</div>
+    <a href="#enforce">14 · 권한·역할·훅·게이트</a>
+    <a href="#context">15 · 컨텍스트·토큰</a>
+    <div class="grp">심화 · 엔진 내부</div>
+    <a href="#dispatcher-internals">16 · 디스패처 내부</a>
+    <a href="#ssot-internals">17 · SSOT 동시성·락</a>
+    <a href="#gemini">18 · Gemini 시각 채널</a>
+    <a href="#cost">19 · 비용·점수카드·paired-run</a>
+    <a href="#scoping">20 · 프로젝트 스코핑</a>
+    <div class="grp">참조</div>
+    <a href="#map">21 · 파일 지도</a>
+    <a href="#cli">22 · 명령어 전체</a>
+    <a href="#blindspots">23 · 놓친 것 · 커버리지</a>
+    <a href="#glossary">24 · 용어집</a>
+  </nav>
+</aside>
+
+<main>
+  <h1 class="title">dev-os 내부 구조 레퍼런스</h1>
+  <p class="subtitle">시스템이 <strong>무엇을 기억하고</strong>, <strong>문제를 어떻게 관리하며</strong>, <strong>규칙을 어떻게 강제하는지</strong>의 A–Z. 마케팅 없는 운영 매뉴얼.</p>
+  <div class="doc-meta">SOURCE: AI.md · AI-core.md · CONTEXT.md · PROJECT_STATE.md · ETHOS.md · dispatch-orchestration.md · session-{start,end}.md · decompose-prd.md · scope-reduction-prohibition.md · questions/QUEUE.md · issues/README.md · gates/user-outcome-review.md · <b>docs/OPERATING_DOCTRINE.md · docs/policy/{MODE_GATE_MATRIX,MODEL_ROUTING_POLICY,ROLE_AUTHORITY_MATRIX,WAIVER_FORMAT,TICKET_SCHEMA}.md</b> · .claude/{settings.json,hooks/*,agents/*} · server/{cli,dispatcher,ssot,gemini_dispatcher,config,cli_reports}.py · docs/superpowers/specs/2026-05-27 · balance-check.yaml · paired-run/README · 실제 QUEUE/ARCHIVE transition records<br>REV 3: 동작 모드(§10–11) + 엔진 내부 심화(§16–20) 추가. 커버리지 노트는 §23.</div>
+
+<!-- ===================== 0 ===================== -->
+<section id="tl">
+  <h2><span class="hsh">§0</span>한 장 요약</h2>
+  <p class="lead">dev-os는 "AI에게 코드를 시키는 일"을 <strong>감사 가능한 상태 기계(auditable state machine)</strong>로 바꾼 것입니다. 모든 진실은 <code>devos/</code> 아래 <strong>파일</strong>에 있고, 일은 <strong>티켓</strong>으로만 움직이며, 누가 무엇을 왜 했는지는 <strong>상태 전이 기록 + 세션 로그 + 질문 큐</strong>에 남습니다.</p>
+  <div class="card">
+    <p style="margin:0">시스템을 한 문단으로:</p>
+    <p style="margin:8px 0 0;color:var(--ink)">사용자(PM)가 의도를 말한다 → <span class="c1">CLAUDE1</span>이 그것을 <strong>티켓</strong>으로 분해하고 빈틈(에러·보안·여정)을 캐묻는다 → 사용자가 plan을 <strong>승인</strong>한다 → 티켓의 <code>owner</code>에 따라 <span class="b">builder</span>(세션 내) 또는 <span class="cx">CODEX</span>(외부 프로세스)가 구현한다 → <code>pr-check</code> 게이트 + <strong>읽기 전용</strong> <span class="r">reviewer</span>/<span class="s">security</span>/<span class="d">designer</span>가 적대적으로 검토한다 → 위험·불확실하면 다른 벤더(<span class="cx">CODEX b'</span>)가 2차 검증한다 → BLOCKER가 없으면 <code>done</code>, 있으면 <code>blocked</code> + 질문 큐(Q-XXX)로 사용자에게 결정을 넘긴다 → done 티켓은 <code>ARCHIVE.yaml</code>로 이관되고 세션은 <strong>8축 자가질문 회고</strong>로 닫힌다.</p>
+  </div>
+  <div class="note key"><span class="lbl">이 문서의 사용처</span><p>당신이 "바이브하게" 지은 구조를 역설계해 적은 것입니다. 각 절 끝의 <span class="chip" style="color:var(--info);border-color:#2a4a5e">놓치기 쉬움</span> 박스가 직접 안 짠 자동 동작을 짚어줍니다.</p></div>
+</section>
+
+<!-- ===================== 1 ===================== -->
+<section id="model">
+  <h2><span class="hsh">§1</span>3층 정신모델</h2>
+  <p>시스템은 세 겹입니다. 위 두 겹은 "무엇을 한다"이고, 맨 아래가 "그걸 어기지 못하게 한다"입니다. 대부분의 안전성은 <strong>3층</strong>에서 옵니다.</p>
+  <table class="fixed">
+    <thead><tr><th>층</th><th>구성</th><th>역할</th><th>저장/구현 위치</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1. 진실(State)</strong></td><td>파일 기반 SSOT</td><td>프로젝트가 무엇이고 지금 어디까지 왔는지를 기억</td><td><code>devos/**</code> (YAML/MD)</td></tr>
+      <tr><td><strong>2. 행위자(Agents)</strong></td><td>CLAUDE1 + sub-agent 4 + CODEX</td><td>계획·구현·검토를 수행</td><td><code>.claude/agents/*</code>, <code>AGENTS.md</code></td></tr>
+      <tr><td><strong>3. 강제(Enforce)</strong></td><td>권한·훅·게이트·금지어·잠긴결정</td><td>규칙을 "신뢰"가 아니라 "구조"로 막음</td><td>hooks, tools allowlist, <code>pr-check</code>, grep</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">핵심 원리 하나: <strong>역할과 권한이 분리되어 있고, 권한은 도구(tool) 차원에서 물리적으로 제한된다.</strong> 검토자는 Edit/Write 툴 자체가 없어서 "고치고 싶어도 못 고친다" — 그래서 자기검토에 의한 객관성 붕괴가 원천 차단됩니다.</p>
+
+  <h3>두 개의 교리 레이어 — <code>docs/</code> vs <code>devos/</code></h3>
+  <p>"규칙"은 한 곳이 아니라 두 층에 삽니다. 이걸 구분하면 헷갈리지 않습니다:</p>
+  <table>
+    <thead><tr><th>레이어</th><th>성격</th><th>예</th></tr></thead>
+    <tbody>
+      <tr><td><code>docs/</code> · <code>docs/policy/</code></td><td><strong>정식 교리/정책 reference</strong> (대부분 status: draft). "OS3는 이래야 한다"는 규범. 모드·역할권한·웨이버·티켓스키마의 <em>설계 원천</em></td><td>OPERATING_DOCTRINE · MODE_GATE_MATRIX · ROLE_AUTHORITY_MATRIX · MODEL_ROUTING_POLICY · WAIVER_FORMAT · TICKET_SCHEMA</td></tr>
+      <tr><td><code>devos/</code> · <code>.claude/</code></td><td><strong>라이브 운영 SSOT + 에이전트가 실제로 읽는 룰</strong>. 헌법(AI.md)·운영룰(CLAUDE.md)·상태·티켓·로그</td><td>AI.md · CLAUDE.md · QUEUE.yaml · CONTEXT.md · logs/</td></tr>
+    </tbody>
+  </table>
+  <div class="note miss"><span class="lbl">놓치기 쉬움</span><p><code>docs/policy/</code>는 "이렇게 하자"는 <strong>설계 문서</strong>이고, 그중 일부만(예: 모드 게이트) 이미 <code>dispatcher.py</code>에 구현되어 라이브로 강제됩니다. 나머지(웨이버 registry, 일부 역할)는 <em>문서엔 있고 코드엔 부분 적용</em>입니다. "규칙이 안 먹는다" 싶으면 그게 docs/의 draft 교리인지, devos/+코드로 실제 집행되는지부터 확인하세요. 이 레퍼런스 §10–11이 그 다리를 놓습니다.</p></div>
+</section>
+
+<!-- ===================== 2 ===================== -->
+<section id="ssot">
+  <h2><span class="hsh">§2</span>SSOT 위계 — 진실이 충돌할 때</h2>
+  <p>여러 파일이 서로 다른 말을 하면, 정해진 <strong>우선순위</strong>로 믿습니다. 위가 강합니다. (출처: <code>AI.md § SSOT Precedence</code>)</p>
+  <div class="statemap">1. PROJECT_STATE.md          ← 마일스톤·진행률의 최종 진실
+2. docs/API_CONTRACT.md
+   docs/UI_CONTRACT.md       ← 인터페이스 계약 (코드보다 우선)
+3. docs/ADR/*                ← 아키텍처 결정 기록 (long-form)
+4. tasks/QUEUE.yaml          ← 활성 티켓 상태
+5. 코드                       ← 실제 구현
+6. 세션 로그 (devos/logs/)    ← 무슨 일이 있었나
+7. 채팅 로그                  ← 가장 안 믿음 (재현·검증 불가)</div>
+  <div class="note warn"><span class="lbl">왜 코드가 4위가 아니라 5위인가</span><p>"계약이 코드보다 위"라는 뜻은: API/UI 동작을 바꾸려면 <strong>계약 문서를 먼저 고치고</strong> 코드를 맞춥니다(contract-first). 코드가 계약과 어긋나면 <em>코드가 틀린 것</em>으로 간주하고, reviewer가 "contract sync" 항목에서 BLOCKER를 냅니다.</p></div>
+</section>
+
+<!-- ===================== 3 ===================== -->
+<section id="statefiles">
+  <h2><span class="hsh">§3</span>상태 파일들 — 무엇이 어디에 기억되나</h2>
+  <p>"우리가 기억하는 법"의 본체입니다. 각 파일은 <strong>기억의 종류</strong>가 다릅니다.</p>
+  <table>
+    <thead><tr><th>파일</th><th>기억하는 것</th><th>수명 / 갱신자</th></tr></thead>
+    <tbody>
+      <tr><td><code>PROJECT_STATE.md</code></td><td>마일스톤, 완료/진행/차단 목록, "지금 어디까지", next hint</td><td>장기 · CLAUDE1이 세션마다 갱신</td></tr>
+      <tr><td><code>CONTEXT.md</code></td><td>TL;DR(~100줄): 무엇을 만드나, 스택, <strong>Locked Decisions(D-XX)</strong></td><td>장기 · 간결 유지</td></tr>
+      <tr><td><code>tasks/QUEUE.yaml</code></td><td><strong>활성</strong> 티켓만(todo/doing/blocked/parked) + 전이 이력</td><td>작업 단위 · 다중 writer (락 사용)</td></tr>
+      <tr><td><code>tasks/ARCHIVE.yaml</code></td><td><strong>done</strong> 티켓 전체(623KB) — 감사 보존. lookup은 QUEUE→ARCHIVE 순</td><td>영구 · <code>os3 archive</code>로 이관</td></tr>
+      <tr><td><code>tasks/ARCHIVE-INDEX.yaml</code></td><td>archive된 티켓의 경량 색인(전체 로드 없이 조회)</td><td>영구</td></tr>
+      <tr><td><code>questions/QUEUE.md</code></td><td>결정이 필요한 <strong>미해결 질문(Q-XXX)</strong> + 해소 이력</td><td>이슈 단위 · §10 참조</td></tr>
+      <tr><td><code>docs/API_CONTRACT.md</code><br><code>docs/UI_CONTRACT.md</code></td><td>인터페이스 계약 (contract-first의 기준점)</td><td>변경 시 코드보다 먼저</td></tr>
+      <tr><td><code>docs/ADR/</code></td><td>아키텍처 결정의 long-form 근거</td><td>영구 · D-XX의 상세본</td></tr>
+      <tr><td><code>logs/{date}-{agent}.md</code></td><td>세션별 무슨 일이 있었나 + 회고</td><td>영구 · 날짜별 누적 (208개+)</td></tr>
+      <tr><td><code>logs/learnings/os2.jsonl</code></td><td>한 줄 단위 <strong>학습 인사이트</strong>(JSONL): date/topic/insight/source/tags</td><td>영구 append</td></tr>
+      <tr><td><code>logs/dispatch/*.log</code></td><td>디스패처 디버그 산출물 (audit 본체 아님, <code>.gitignore</code>됨)</td><td>임시</td></tr>
+      <tr><td>auto-memory <code>MEMORY.md</code></td><td>세션을 넘는 사용자 선호·교정·quirk (harness 메모리, <code>~/.claude/projects/.../memory/</code>)</td><td>영구 · §4 참조</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Locked Decisions (D-XX) — 절대 어기면 안 되는 결정</h3>
+  <p><code>CONTEXT.md</code> 안에 사는 특수 레코드. 일반 결정과 다른 점: <strong>위반이 grep/파일검사로 객관 검출되고, 위반 티켓은 waiver 없이 reviewer가 자동 BLOCKER</strong>로 막습니다. 등재 자격이 까다로워서(4조건) 인위로 만들지 않습니다 — 현재 단 1건:</p>
+  <pre><code>- id: D-01
+  status: locked
+  decided: 2026-05-16
+  summary: HEAD baseline test 는 scripts/baseline-test.sh 로만 — git stash/reset --hard/checkout HEAD -- 금지
+  rationale: 2026-05-16 incident — baseline 검증용 git stash 가 reflog reset + working-tree 손상 유발
+  consequence: ticket/commit diff 에 해당 명령이 baseline 목적으로 등장 → reviewer BLOCKER</code></pre>
+  <div class="note miss"><span class="lbl">놓치기 쉬움</span><p>D-XX는 단순 메모가 아니라 <strong>검토자에게 자동 BLOCKER 권한을 주는 레코드</strong>입니다. 새 "절대 규칙"을 만들고 싶으면 그냥 CLAUDE.md에 문장 추가가 아니라, <em>① grep으로 검출 가능 ② 위반 시 무조건 ship 금지 ③ 트레이드오프 종결 ④ OS 자체 영역</em> 4조건을 통과시켜 D-XX로 등재해야 강제력이 생깁니다.</p></div>
+</section>
+
+<!-- ===================== 4 ===================== -->
+<section id="memory">
+  <h2><span class="hsh">§4</span>세션 경계의 기억 — 어떻게 까먹지 않나</h2>
+  <p>AI 세션은 컨텍스트가 날아갑니다. dev-os는 <strong>세션 시작/종료 프로토콜</strong>로 기억을 파일에 고정합니다.</p>
+
+  <h3>세션 시작 — Boot read map (한 번만 읽기)</h3>
+  <p><code>session-start.md</code>가 정한 부팅 시퀀스. 각 파일을 세션당 <strong>1회</strong>만 읽고 머릿속에 요약을 유지합니다(같은 파일을 offset 바꿔 다시 읽으면 "캐싱 실패" 신호).</p>
+  <ol style="columns:2;column-gap:28px">
+    <li><code>devos/AI.md</code> (헌법)</li>
+    <li><code>PROJECT_STATE.md</code></li>
+    <li><code>CONTEXT.md</code></li>
+    <li><code>QUEUE.yaml</code> 전체 → id→status/owner 색인</li>
+    <li><code>questions/QUEUE.md</code></li>
+    <li><code>API_CONTRACT.md</code> / <code>UI_CONTRACT.md</code></li>
+    <li><code>logs/</code> 최신 1–2개 (교차 컨텍스트)</li>
+  </ol>
+  <p class="muted">에이전트별로 무엇을 읽는지는 <code>AI.md</code>의 "Session-start read map" 표가 정합니다. sub-agent는 슬림본 <code>AI-core.md</code>로 부팅하고(토큰 절약), 전문 <code>AI.md</code>는 필요할 때만 부분 읽기.</p>
+
+  <h3>세션 종료 — 8축 자가질문 회고</h3>
+  <p><code>session-end.md</code>가 강제하는 종료 의식. 단순 "오늘 한 일" 요약이 아니라, <strong>빠뜨린 게 없는지 8개 카테고리를 의무적으로 자문</strong>합니다(없으면 "없음"이라도 명시). 목적: 회고 누락률 통제.</p>
+  <table>
+    <thead><tr><th>#</th><th>자가질문 카테고리</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>user-AI 협업 마찰 (같은 지시 반복? 의도 오해?)</td></tr>
+      <tr><td>2</td><td>DB/data 위험 (schema drift, 마이그레이션 누락, 데이터 손실)</td></tr>
+      <tr><td>3</td><td>dev 환경 (token TTL, redirect loop, port 충돌, env 누락)</td></tr>
+      <tr><td>4</td><td>잔재 파일 / .gitignore (임시파일, sentinel, working-tree 잔재)</td></tr>
+      <tr><td>5</td><td>Wave 분기 / PM 결정 deferred (미해결 결정, 의존 unblock 누락)</td></tr>
+      <tr><td>6</td><td>memory system — 이번에 발견한 반복 패턴이 memory 자격인가?</td></tr>
+      <tr><td>7</td><td>vendor 정보 검증 — 정보를 직접 <code>--help</code>로 검증했나?</td></tr>
+      <tr><td>8</td><td>보안 — 평문 secret, API key, OAuth flow, OWASP 신호</td></tr>
+    </tbody>
+  </table>
+  <p>회고 헤더엔 <code>revision_delta</code>(v1 항목 수 → 최종 항목 수 변화율)를 기록합니다. <strong>게이트가 아니라 메트릭</strong> — "처음에 얼마나 빠뜨렸나"를 스스로 보게 만드는 압력 장치입니다.</p>
+
+  <h3>장기 기억(MEMORY.md) write 트리거</h3>
+  <p>세션을 넘겨 기억할 가치가 있는 것만 골라 적습니다(자동 강제 write 아님 — trigger만 명시):</p>
+  <ul>
+    <li>사용자가 기본 동작을 <strong>교정/override</strong> → 교정된 규칙 + 이유</li>
+    <li>사용자가 선호·습관·품질 기준을 말함</li>
+    <li>프로젝트 고유 관례 발견 (티켓 포맷, 훅 동작, 네이밍)</li>
+    <li>라이브러리/API quirk를 조사로 확인</li>
+    <li>회고에서 <strong>반복 패턴(≥2회)</strong> 발견</li>
+  </ul>
+  <p class="muted">반대로 <strong>안 적는 것</strong>: 코드/git log/SSOT에서 쉽게 재발견되는 것, 일회성 세션 상태, 기존 memory의 중복(→ append 말고 update).</p>
+  <div class="note miss"><span class="lbl">놓치기 쉬움</span><p>"기억"은 두 갈래입니다. <strong>(a) 프로젝트 상태</strong>는 <code>devos/</code> 파일(공유, git 추적)에, <strong>(b) 사용자/협업 선호</strong>는 harness의 <code>MEMORY.md</code>(개인, git 밖)에 갑니다. 같은 사실을 양쪽에 중복 저장하지 않는 게 규칙입니다. learnings <code>.jsonl</code>은 또 다른 갈래로 "재사용 가능한 인사이트"의 append-only 로그입니다.</p></div>
+</section>
+
+<!-- ===================== 5 ===================== -->
+<section id="ticket">
+  <h2><span class="hsh">§5</span>티켓 해부 — 일의 최소 단위</h2>
+  <p>모든 구현은 <code>QUEUE.yaml</code> 안의 티켓입니다. <strong>1 티켓 = 1 PR</strong>. 자기완결적이어야 합니다(구현 AI가 티켓+SSOT만 읽고 실행 가능).</p>
+  <pre><code>- id: T-AUTH-LOGIN-01
+  status: todo            <span class="dim"># 새 티켓은 반드시 todo (디스패처는 이것만 집음)</span>
+  owner: CODEX            <span class="dim"># BUILDER | CODEX | CLAUDE1(문서 한정)</span>
+  impl_owner: CODEX       <span class="dim"># 구현 담당 (set 시 디스패처 타깃)</span>
+  test_owner: CODEX       <span class="dim"># 테스트 담당 — cross-test 시 impl과 분리</span>
+  tdd: required           <span class="dim"># required | skip | self-evident</span>
+  security_audit: true    <span class="dim"># auth/결제/권한/외부입력 → 자동 강제 true</span>
+  cross_model: false      <span class="dim"># 임계경로 → CODEX 2차 의견</span>
+  ethos: high             <span class="dim"># 위험 키워드 감지 시 자동 → critical 분류</span>
+  skills_hint: [test-driven-development]   <span class="dim"># 구현가에게 권장 skill</span>
+  goal: |  ...            <span class="dim"># 무엇을 (행위 요구) — CLAUDE1 작성</span>
+  context: |  ...         <span class="dim"># 왜 + 조사결과 (라이브러리 API 등) ← CLAUDE1의 리서치가 여기 park됨</span>
+  constraints: |  ...     <span class="dim"># 기술 제약</span>
+  dod:                    <span class="dim"># 완료 기준 — 각 항목 입력+기대출력</span>
+    - 'valid 자격증명 → 200 + access/refresh JWT'   <span class="dim"># 성공</span>
+    - 'wrong password → 401 + "invalid credentials"' <span class="dim"># ★에러 필수★</span>
+  files: [apps/api/src/auth/login.py, tests/test_auth_login.py]  <span class="dim"># 소유권 범위</span>
+  verify: |  python3 -m pytest tests/test_auth_login.py -v
+  deps: []               <span class="dim"># 선행 티켓 (모두 done이어야 디스패치)</span>
+  gates: [pr-check]
+  screenshot_tool: playwright   <span class="dim"># (선택) user-outcome-review 게이트 활성</span></code></pre>
+
+  <h3>필드별 규칙 요약</h3>
+  <table>
+    <thead><tr><th>필드</th><th>규칙</th></tr></thead>
+    <tbody>
+      <tr><td><code>dod</code></td><td>성공 DOD가 있으면 <strong>에러 DOD 필수</strong>. "잘 작동함" 같은 모호 표현 금지. truthy 단언(<code>assert response</code>) 거부</td></tr>
+      <tr><td><code>files</code></td><td>이 목록 <strong>밖의 파일을 건드리면</strong> scope guard가 BLOCKER. <code>NEW:</code> 접두는 신규 파일 마커</td></tr>
+      <tr><td><code>tdd</code></td><td><code>required</code>면 첫 커밋에 테스트 파일이 있어야(pr-check가 검사). <code>self-evident</code>는 waiver를 로그에 기록</td></tr>
+      <tr><td><code>owner</code> 라우팅</td><td>모호/감성 UI·새 UX → <span class="b">BUILDER</span>. 백엔드/데이터/인프라/테스트/마이그레이션/정책 → <span class="cx">CODEX</span>. 문서·정책(devos/.claude) → <span class="c1">CLAUDE1</span> 직접</td></tr>
+      <tr><td>자동 강제</td><td><code>security_audit</code>·<code>ethos:high</code>는 키워드(삭제/결제/인증/권한/delete/payment/auth…) 감지로 자동 켜짐</td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><span class="lbl">금지어 (scope-reduction)</span><p>goal/dod/context에 <code>v1으로 일단</code>·<code>static for now</code>·<code>TODO</code>·<code>임시</code>·<code>나중에</code>·<code>simplified</code>·<code>minimal</code>·<code>quick fix</code>·<code>hardcoded for now</code> 등이 들어가면 <strong>티켓 진입 불가</strong>. 승인 직전 grep(정규식 1개)으로 자동 검사하고, PR review에서도 BLOCKER. 예외는 단 3가지(D-XX 분할 / spike·research / 외부제약)뿐.</p></div>
+
+  <h3>모드 시대의 확장 필드 (TICKET_SCHEMA.md)</h3>
+  <p>위 핵심 필드 외에, 모드·게이트 자세를 제어하는 표준 필드가 더 있습니다(§10–11 참조). 일부 레거시 티켓엔 없지만, 새 production 티켓엔 넣는 게 권장됩니다.</p>
+  <pre><code>mode: exploration | productization | production   <span class="dim"># 게이트 자세 결정 (dispatcher 집행)</span>
+user_outcome: string            <span class="dim"># production 필수 — 이 변경이 가능케 하는 사용자 결과</span>
+risk_level: low|medium|high|critical
+work_type: ui|api|data|infra|docs|policy|security|mixed
+requires_visual_review: true|false   <span class="dim"># work_type:ui면 production에서 사실상 필수</span>
+requires_security_review: true|false
+requires_pm_acceptance: true|false
+policy_class: hard | soft       <span class="dim"># hard=fail-closed, soft=경고/follow-up</span>
+waivers: [ W-YYYYMMDD-NNN | inline 레코드 ]   <span class="dim"># §11</span>
+reviewers:
+  code: reviewer | codex | none
+  security: security | codex | none
+  visual: gemini | designer | none</code></pre>
+</section>
+
+<!-- ===================== 6 ===================== -->
+<section id="status">
+  <h2><span class="hsh">§6</span>상태 머신 + 감사 추적</h2>
+  <p>티켓은 정해진 상태값만 가집니다. <strong>디스패처는 <code>todo</code>만 집습니다</strong> — <code>ready</code>·<code>pending</code>·<code>queued</code>는 조용히 무시되니 쓰면 안 됩니다.</p>
+  <div class="statemap">       ┌──────────────────── (반려/막힘) ───────────────────┐
+       ▼                                                     │
+   ┌──────┐  dispatch   ┌───────┐  impl 완료   ┌────────────┐ │ review
+   │ todo │────────────▶│ doing │────────────▶│ code_ready │─┤ BLOCKER
+   └──────┘             └───────┘             └────────────┘ │
+       │                                            │        ▼
+       │ (deps 미해결 / preflight 실패)              │   ┌─────────┐
+       ├───────────────────────────────────────────┼──▶│ blocked │──▶ Q-XXX
+       │                                            │   └─────────┘
+       │                              PM 판단 필요   ▼
+       │                                       ┌──────────┐
+       │                                       │ needs_pm │ (취향·수용·waiver)
+       │                                       └──────────┘
+       ▼                                            │ OK
+   ┌────────┐  보류                                  ▼
+   │ parked │                                    ┌──────┐   os3 archive   ARCHIVE.yaml
+   └────────┘                                    │ done │───────────────▶ (영구 보존)
+                                                 └──────┘</div>
+  <table>
+    <thead><tr><th>상태</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip">todo</span></td><td>새 티켓. 디스패처가 집는 유일한 값</td></tr>
+      <tr><td><span class="chip">doing</span></td><td>구현 진행 중</td></tr>
+      <tr><td><span class="chip">code_ready</span></td><td>구현 끝, 게이트/리뷰/PM 결정 남음. <strong>production 규칙: 구현자는 여기까지만 — <code>done</code>은 dispatcher가 게이트·리뷰·웨이버 확인 후 부여</strong> (§10)</td></tr>
+      <tr><td><span class="chip warn">needs_pm</span></td><td>제품 판단·시각 취향·최종 수용·waiver 승인이 필요 (당신 차례)</td></tr>
+      <tr><td><span class="chip ok">done</span></td><td>게이트·리뷰·결정·기록 모두 닫힘</td></tr>
+      <tr><td><span class="chip block">blocked</span></td><td>막힘 — 질문 큐에 사유</td></tr>
+      <tr><td><span class="chip dim">parked</span></td><td>보류 (전제 사라짐 등)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>전이 이력 — 모든 상태 변화가 기록된다</h3>
+  <p>이게 "감사 가능"의 실체입니다. 상태가 바뀔 때마다 티켓 안에 <code>_transition_*</code> 메타가 누적됩니다(실제 QUEUE.yaml에서 발췌):</p>
+  <pre><code>_transition_reason: 'module removed in host-OS migration #3; prerequisite gone'
+_transition_actor: CLAUDE1
+_transition_ts: '2026-05-28T16:46:21Z'
+_transition_history:
+  - {status: doing,   reason: 'dispatching to CODEX',          actor: CLAUDE1,   ts: ...}
+  - {status: todo,    reason: 'dispatcher requires todo',      actor: CLAUDE1,   ts: ..., override: true}
+  - {status: blocked, reason: 'ticket_preflight_failed: missing file path: ...', actor: dispatcher, ts: ...}
+  - {status: parked,  reason: 'prerequisite no longer exists', actor: CLAUDE1,   ts: ..., override: true}
+_blocked_reason: 'ticket_preflight_failed: missing file path: tests/...'
+_blocked_log: ticket_preflight</code></pre>
+  <div class="note miss"><span class="lbl">놓치기 쉬움</span><p><code>actor</code>가 <code>dispatcher</code>인 전이는 <strong>사람/AI가 아니라 엔진이 자동으로 막은 것</strong>입니다(예: preflight 실패). <code>override: true</code>는 정상 전이 규칙을 의도적으로 우회했다는 표식이고요. 티켓이 왜 이 상태인지 의문이면 <code>_transition_history</code>를 읽으면 전말이 나옵니다 — 채팅 로그를 뒤질 필요가 없습니다.</p></div>
+</section>
+
+<!-- ===================== 7 ===================== -->
+<section id="lifecycle">
+  <h2><span class="hsh">§7</span>PRD → done 전체 흐름</h2>
+  <div class="flow">
+    <div class="row"><div class="n"></div><div class="bd"><h4>진입 <code>os3 open &lt;project&gt;</code></h4><p>cd + 호스트 설정(CLAUDE.md·에이전트·hooks·권한) 주입 + <code>claude</code> 기동.</p></div></div>
+    <div class="row"><div class="n"></div><div class="bd"><h4>PRD intake (의무 체크리스트)</h4><p><code>prd-intake-checklist.md</code>로 도메인별 누락(에러·엣지·보안) 강제 질문. happy-path만 적힌 PRD를 그대로 분해 금지. 답변은 PRD 부록 또는 Q-XXX에 기록.</p></div></div>
+    <div class="row"><div class="n"></div><div class="bd"><h4>User journey 추출 + e2e draft (의무)</h4><p>PRD에서 사용자가 직접 보는 시점을 <code>J-1, J-2…</code>로 줄 단위 발췌(success+failure 둘 다). journey 1건 → e2e 티켓 draft 1건 자동 변환.</p></div></div>
+    <div class="row"><div class="n"></div><div class="bd"><h4>금지어 자가검사 + plan 저장</h4><p>scope-reduction grep 0건 통과 후 <code>devos/plans/pending/</code>에 저장. <strong>승인 전 QUEUE 진입 금지.</strong></p></div></div>
+    <div class="row"><div class="n"></div><div class="bd"><h4>승인 <code>os3 approve</code> / 반려 <code>os3 reject "이유"</code></h4><p>사용자 게이트. 반려 시 피드백 반영해 plan 수정.</p></div></div>
+    <div class="row"><div class="n"></div><div class="bd"><h4>디스패치 <code>os3 dispatch T-XXX</code></h4><p>owner 라우팅 → 구현 → <code>Done / Block: Q-XXX / Log</code> 반환. (상세 §8)</p></div></div>
+    <div class="row"><div class="n"></div><div class="bd"><h4>게이트 + 검토 체인 + b'</h4><p><code>pr-check</code> → 분류별 reviewer/security/designer → 정량 조건 충족 시 CODEX 교차검증. (상세 §9)</p></div></div>
+    <div class="row"><div class="n"></div><div class="bd"><h4>판정 → 상태 + 로그 + 회고 + archive</h4><p>BLOCKER 우선 판정. done이면 <code>logs/{date}-orchestrator-{id}.md</code> 작성, 세션 종료 시 done≥1이면 <code>os3 archive</code>.</p></div></div>
+  </div>
+</section>
+
+<!-- ===================== 8 ===================== -->
+<section id="dispatch">
+  <h2><span class="hsh">§8</span>디스패치 7단계 (deterministic)</h2>
+  <p><code>/dispatch T=X</code>를 받았을 때 CLAUDE1이 따르는 고정 절차. "실행해/해줘" 같은 모호한 호출은 거부하고 티켓 id를 요구합니다.</p>
+  <table>
+    <thead><tr><th>단계</th><th>동작</th><th>실패 시</th></tr></thead>
+    <tbody>
+      <tr><td>1 · lookup + preflight</td><td><code>os3 lookup {id}</code>(QUEUE→ARCHIVE). status==todo? deps 모두 done? <code>files</code> 경로 존재? <code>verify</code> 첫 토큰이 실재 바이너리?</td><td>blocked + <code>verify_preflight: failed</code></td></tr>
+      <tr><td>2 · owner 라우팅</td><td>BUILDER→3a / CODEX→3b / CLAUDE1→3c. CLAUDE2는 deprecated → BUILDER로 마이그레이션</td><td>unknown owner → exit 1</td></tr>
+      <tr><td>3 · 구현 (+BOOT_INLINE)</td><td>3a: <code>Agent(builder, …)</code> 세션 내 / 3b: <code>dispatch-codex</code> subprocess / 3c: main 직접(문서). AI-core.md 본문을 prompt에 <code>&lt;BOOT_INLINE&gt;</code>로 주입 → sub-agent가 부팅 Read 생략(토큰 절약)</td><td>timeout/Block → blocked + Q-id</td></tr>
+      <tr><td>4 · pr-check 게이트</td><td>5종 베이스라인 게이트(§14). 모드와 무관하게 항상 차단(secret 내장)</td><td>blocked + 실패 게이트 출력</td></tr>
+      <tr><td>5 · 검토 체인 (5분기)</td><td>티켓 분류 → 필요 검토자만 spawn + 5% 무작위 표본 승격 (§9)</td><td>검토자 timeout → WARNING 기록 후 진행</td></tr>
+      <tr><td>6 · fan-in + b'</td><td>verdict 취합, 정량 조건 충족 시 CODEX 교차검증 (§9)</td><td>CODEX timeout → reviewer 단독 + fallback WARNING</td></tr>
+      <tr><td>7 · 최종 처리 + 표준 헤더</td><td>BLOCKER 우선 판정 → 상태/로그/QUEUE 갱신 + 표준 결과 헤더 출력</td><td>QUEUE write fail → 수동 복구 Q-id</td></tr>
+    </tbody>
+  </table>
+  <p>모든 디스패치는 <code>logs/dispatch-classification.jsonl</code>에 1줄(분류·spawn 수·ethos·audit_sample·escalated)을 남겨 분류 정확도를 사후 검증합니다.</p>
+  <h3>표준 결과 헤더</h3>
+  <pre><code>T-OSN-X done — path: ui
+  build: sonnet
+  review: designer(sonnet) — BLOCKER:0 WARNING:1 OK
+  b': skip
+  paired_run: none
+  verdict: MERGE OK
+  files: [apps/web/...]
+  log: devos/logs/2026-05-30-orchestrator-T-OSN-X.md</code></pre>
+  <p class="muted">이 헤더가 "어느 경로로, 어느 모델이 만들고 검토했는지"를 매번 묻지 않게 흡수합니다.</p>
+</section>
+
+<!-- ===================== 9 ===================== -->
+<section id="review">
+  <h2><span class="hsh">§9</span>검토 · 교차검증의 결정 규칙</h2>
+  <h3>5-way 분류 (어떤 검토자를 부를지)</h3>
+  <table>
+    <thead><tr><th>분류</th><th>조건</th><th>검토자</th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip block">critical</span></td><td><code>security_audit</code> 또는 <code>ethos:high</code></td><td>reviewer + security (+UI면 designer)</td></tr>
+      <tr><td><span class="chip">ui</span></td><td><code>apps/web/</code> 파일 포함</td><td>designer + builder self-review (security skip)</td></tr>
+      <tr><td><span class="chip">backend_non_critical</span></td><td><code>apps/api/ packages/ server/</code></td><td>reviewer (Opus 4축 점수카드)</td></tr>
+      <tr><td><span class="chip dim">docs_refactor</span></td><td>전부 <code>devos/ .claude/ docs/</code></td><td>self-verify only (pr-check만)</td></tr>
+    </tbody>
+  </table>
+  <div class="note key"><span class="lbl">5% 무작위 표본</span><p>평소 가볍게 지나가는 ui/backend/docs 경로도 <strong>5% 확률로 critical로 승격</strong>해 풀 체인을 돌립니다. "가벼운 경로엔 구멍이 영구히 안 뚫린다"는 보장이 없으니 만든 통계적 안전망입니다(<code>audit_sample:true</code>로 로그됨).</p></div>
+
+  <h3>b' (교차모델 2차검증) 정량 트리거</h3>
+  <p>예전의 정성 "uncertainty=true"를 정량 기준으로 대체. <strong>하나라도 참이면</strong> <code>os3 cross-model-codex {id}</code> 발동(60초 타임아웃, 평소 비용 0):</p>
+  <pre><code>cross_model == true            # 명시 요청
+security_audit == true         # auth/payment/권한/외부입력
+ethos == 'high'                # 위험 키워드
+reviewer.confidence &lt; 0.7      # 검토자 스스로 불확실
+blocker_count &gt;= 1             # BLOCKER 발견 → 2차 검증
+warning_count &gt;= 3             # WARNING 누적
+security.findings 1건 이상      # 보안 지적
+reviewer.uncertainty == true   # legacy 호환</code></pre>
+  <p>verdict 통합은 <strong>BLOCKER 우선</strong>: reviewer/security/codex 중 하나라도 BLOCKER → 최종 BLOCKER. 하나라도 WARNING → WARNING. 모두 OK → OK. b' fallback rate는 10–25%가 정상 구간(너무 낮으면 임계 보수적, 너무 높으면 분류 부정확).</p>
+
+  <h3>별도 채널 2종</h3>
+  <div class="grid g2">
+    <div class="card"><h4>Gemini 시각 검토</h4><p>UI 티켓(<code>apps/web/</code> 또는 <code>gui_review:true</code>)에 <code>os3 gemini dispatch {id}</code> 자동. 반복 이슈 추적 + 스크린샷 기반. Production UI 게이트용.</p></div>
+    <div class="card"><h4>user-outcome-review 게이트</h4><p>티켓에 <code>screenshot_tool</code>(playwright/detox/maestro/simctl/eas)이 있으면, 자동검사를 통과해도 <strong>최종 결과를 사용자가 눈으로 OK</strong>해야 done. reject 시 <code>{source}-FF-{ts}</code> <strong>fast-follow</strong> 티켓을 자동 draft + 원본 block.</p></div>
+  </div>
+  <div class="note miss"><span class="lbl">놓치기 쉬움</span><p>"Type B 결함"(자동검사는 통과하는데 눈으로 보면 틀린 것)을 잡는 게 user-outcome-review의 존재 이유입니다. UI/모바일 티켓이면 티켓에 <code>screenshot_tool</code>을 넣어야 이 게이트가 켜집니다 — 안 넣으면 graceful skip 되어 그냥 통과합니다.</p></div>
+</section>
+
+<!-- ===================== 10 · MODES ===================== -->
+<section id="modes">
+  <h2><span class="hsh">§10</span>동작 모드 (Operating Modes) — 같은 일이라도 기준이 다르다</h2>
+  <p class="lead">하나의 아이디어는 신뢰도가 오르며 <strong>Exploration → Productization → Production</strong>으로 이동합니다. 모드는 단순 라벨이 아니라 <strong>게이트가 막을지 경고만 할지를 바꾸는 실제 스위치</strong>입니다 — 티켓의 <code>mode:</code> 필드로 지정하고, <code>server/dispatcher.py</code>의 <code>_gate_is_blocking()</code>이 집행합니다. (출처: <code>docs/OPERATING_DOCTRINE.md §4</code>, <code>docs/policy/MODE_GATE_MATRIX.md</code>)</p>
+  <table>
+    <thead><tr><th>모드</th><th>목적</th><th>"완료"의 의미</th><th>품질 자세</th></tr></thead>
+    <tbody>
+      <tr><td><span class="chip">exploration</span></td><td>빠르게 배우기 — 프로토타입·UX 스케치·기술 가능성 확인</td><td>PM이 <strong>다음 제품 결정</strong>을 할 수 있다</td><td>완성도보다 반복 속도. 테스트·보안 최소화 가능, visual review는 비차단</td></tr>
+      <tr><td><span class="chip warn">productization</span></td><td>유망한 것을 production 준비 상태로 — 요구·리스크·acceptance 정리</td><td>이 작업은 <strong>Production으로 구현할 준비</strong>가 됐다</td><td>구현보다 <strong>기획 산출물</strong> 우선. user story·DOD·owner·files·gates 정의</td></tr>
+      <tr><td><span class="chip block">production</span></td><td>실제 제품에 남고 유지될 변경 — 사용자 노출·실데이터·인증/권한</td><td>required 게이트·리뷰·웨이버·기록이 <strong>모두 닫힘</strong></td><td>좋은 개발팀처럼. 성공+실패 경로 테스트, 보안, 모든 state, migration/rollback</td></tr>
+    </tbody>
+  </table>
+  <div class="note key"><span class="lbl">왜 모드가 핵심인가</span><p>"PM 친화적 = 낮은 품질"이 아닙니다. PM이 기술 세부를 일일이 검증하지 않으려면 시스템이 <strong>오히려 더 엄격</strong>해야 합니다 — 그 엄격함의 <em>양</em>을 모드가 조절합니다. exploration에서 빠르게 놀다가, production으로 승격되는 순간 자동으로 빡세집니다. 같은 코드라도 모드가 다르면 게이트 결과가 다릅니다.</p></div>
+
+  <h3>Production 전용 규칙 — done은 구현자가 못 준다</h3>
+  <p><code>mode: production</code> 티켓엔 <code>TICKET_SCHEMA.md</code>가 강제하는 추가 규칙이 있습니다:</p>
+  <ul>
+    <li><code>user_outcome</code> 필수 (이 변경이 가능케 하는 사용자 결과)</li>
+    <li>DOD에 성공+실패 동작 필수 / <code>files</code> 명시 / <code>deps</code>는 QUEUE+ARCHIVE 횡단 해소</li>
+    <li><code>work_type: ui</code>면 <code>requires_visual_review: true</code> (또는 inline 웨이버 레코드)</li>
+    <li>auth/payment/privacy/권한/destructive/외부입력 → security review 필수</li>
+    <li><strong>구현자는 <span class="chip">code_ready</span>까지만.</strong> <span class="chip ok">done</span>은 dispatcher가 required 게이트·독립 리뷰·보안/시각 리뷰·PM 결정·웨이버·기록을 확인한 뒤에만 부여 — "구현 끝 = 완료"가 아님 (§6)</li>
+  </ul>
+  <div class="note miss"><span class="lbl">놓치기 쉬움</span><p>지금 QUEUE의 활성 티켓 대부분은 <code>mode</code> 필드가 <strong>없습니다</strong>(레거시 = 전부 fail-closed로 동작). 반면 ARCHIVE의 실제 티켓 15건은 <code>mode:</code>를 씁니다. 즉 모드는 <em>설계·구현되었지만 아직 모든 티켓에 일관 적용되지는 않은</em> 상태입니다. 새 티켓을 만들 때 <code>mode</code>를 명시하면 그 티켓의 게이트 자세를 의도대로 제어할 수 있습니다.</p></div>
+</section>
+
+<!-- ===================== 11 · MODE GATE / WAIVER ===================== -->
+<section id="modegate">
+  <h2><span class="hsh">§11</span>모드별 게이트 매트릭스 · 웨이버 · 정책 클래스</h2>
+
+  <h3>Mode × Gate 매트릭스</h3>
+  <p>각 게이트가 모드별로 <strong>Required(차단) / Recommended / Report-only(경고만)</strong> 중 무엇인지. (요약 — 원문 <code>MODE_GATE_MATRIX.md</code>)</p>
+  <table>
+    <thead><tr><th>게이트</th><th>exploration</th><th>productization</th><th>production</th></tr></thead>
+    <tbody>
+      <tr><td>User outcome</td><td>권장</td><td><b>필수</b></td><td><b>필수</b></td></tr>
+      <tr><td>성공+실패 DOD</td><td>선택</td><td><b>필수(제안)</b></td><td><b>필수</b></td></tr>
+      <tr><td>Tests</td><td>선택/report-only</td><td>전략 필수</td><td><b>필수</b>(로직/API/data)</td></tr>
+      <tr><td>Reviewer</td><td>선택/report-only</td><td>권장</td><td><b>필수 · reject면 차단</b></td></tr>
+      <tr><td>Security</td><td>secret/destructive/auth 등만</td><td>리스크 식별 필수</td><td><b>트리거 시 필수 · reject 차단</b></td></tr>
+      <tr><td>Visual review</td><td>선택/report-only</td><td>UI 수용 정의 시 필수</td><td><b>Production UI 필수(웨이버 외)</b></td></tr>
+      <tr><td>PM 승인</td><td>제품 방향만</td><td>제품 의도+남은 결정</td><td>판단·취향·웨이버·최종 수용</td></tr>
+      <tr><td>File scope / Deps</td><td><b>필수</b></td><td><b>필수</b></td><td><b>필수 · 위반 차단</b></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Report-only가 실제로 강제되는 법 (fail-closed 모델)</h3>
+  <p><code>dispatcher.py</code>의 <code>_gate_is_blocking</code>가 구현한 정확한 규칙 — 오해 주의:</p>
+  <ul>
+    <li><strong>report-only = skip이 아니라 run-and-report.</strong> 게이트는 <em>그대로 실행</em>되고, 실패하면 세션 로그에 <code>[REPORTED] &lt;gate&gt;</code>(+ agent-review면 실제 WARNING verdict)를 남기고 <strong>done까지 통과</strong>시킨다. 안 돌리는 게 아니다.</li>
+    <li><strong>강등 조건은 둘 다 참일 때만</strong>: ① <code>mode</code>가 exploration/productization <strong>그리고</strong> ② 그 게이트가 <em>명시적으로</em> soft 품질 게이트(tests/lint/reviewer/visual 등 정확 멤버십). 그 외 모든 게이트는 <strong>모든 모드에서 차단</strong>.</li>
+    <li><strong>기본값은 block</strong>: <code>pr-check</code>, 이름/명령에 <code>secret·gitleaks·detect-secrets·trufflehog</code> 등 hard 토큰이 든 게이트, <strong>인식 못한/미래/리네임된 게이트</strong>는 전부 차단.</li>
+    <li><code>mode</code>가 production/없음/unknown → <strong>모든 게이트 차단</strong> (레거시 무-mode 티켓은 원래의 all-blocking 유지).</li>
+    <li>production review FAIL은 차단하고 auto-WARNING으로 세탁 불가 (reject를 done으로 둔갑 금지).</li>
+  </ul>
+  <div class="note danger"><span class="lbl">항상 차단되는 안전 바닥 (exploration에서도)</span><p>모드와 무관하게 fail-closed: <strong>secret 노출 · destructive action · 개인정보/권한 사고 · file scope 위반 · PM 승인 없는 비가역 변경</strong>. <code>pr-check</code>는 secret 스캔을 내장하므로 어떤 soft allowlist에도 없음 — 모든 모드에서 막힙니다.</p></div>
+
+  <h3>Waiver (W-XXX) — 예외는 기록되어야 통과한다</h3>
+  <p>Production hard policy 예외는 "그냥 넘어가기"가 안 됩니다. <strong>inline 웨이버 레코드 + PM 승인</strong>이 있어야 합니다. 없으면 production 작업은 <code>done</code>이 아니라 <code>needs_pm</code>/<code>blocked</code>에 머뭅니다. (<code>WAIVER_FORMAT.md</code>)</p>
+  <pre><code>waivers:
+  - id: W-20260530-001
+    ticket: T-XXX
+    mode: production
+    policy: required_visual_review | security_review | test_failure | coverage | reviewer_request_changes
+    requested_by: CODEX
+    approved_by: PM            <span class="dim"># 반드시 PM</span>
+    decision: accept_with_waiver
+    reason: <위험을 이해하고 받아들인 이유>
+    risk_accepted: <구체적 잔여 위험>
+    expires: never | YYYY-MM-DD | after_ticket
+    follow_up_ticket: T-YYY | none
+    evidence: [path-or-log]
+    created_at: 2026-05-30T...Z</code></pre>
+  <div class="grid g2">
+    <div class="card"><h4 class="ok">웨이버 가능 (PM 임시 통과)</h4><ul style="margin:0"><li>non-critical 테스트 실패 (follow-up 존재)</li><li>주관적 visual 이슈 / 취향 트레이드오프</li><li>coverage 부족 (위험 수용 + follow-up)</li><li>시간 민감 결정 지연시키는 soft 경고</li></ul></div>
+    <div class="card"><h4 class="block">웨이버 불가 (절대)</h4><ul style="margin:0"><li>secret 노출 · owner mismatch · file scope 위반</li><li>미해결 deps · dirty-worktree destructive 위험</li><li>보호 영역 무단 쓰기 (CODEX의 <code>devos/**</code>)</li><li>remediation 없는 auth/payment/privacy/data-loss 취약점</li></ul></div>
+  </div>
+
+  <h3>Hard vs Soft 정책 클래스</h3>
+  <div class="kv">
+    <dt>Hard policy</dt><dd>Production에서 fail-closed 기본. 중복 ID·미해결 deps·owner mismatch·scope 위반·secret·required 테스트 실패·required 리뷰 reject·UI visual 누락·웨이버 누락</dd>
+    <dt>Soft policy</dt><dd>경고·cleanup·follow-up 티켓으로 처리. 파일 길이 budget·복잡도·문서 drift·스타일·cost report 누락·선택적 리팩터</dd>
+  </div>
+  <p class="muted">원칙: <strong>PM은 raw policy noise를 해석하지 않는다.</strong> 시스템이 "무엇이 block / 무엇이 recommendation / 무엇이 PM 판단 필요"인지 요약해서 올립니다.</p>
+
+  <h3>Visual review 루프 (Production UI)</h3>
+  <div class="statemap">1차 Gemini request_changes        →  차단
+2. builder 수정
+3. 같은 이슈 2차 리뷰:
+     ├─ 객관적 깨짐(layout/clip/blank) 잔존  →  계속 차단
+     └─ 취향·트레이드오프 잔존              →  PM 판단으로 전환
+4. PM: 추가 반복  또는  accept_with_waiver</div>
+</section>
+
+<!-- ===================== 12 ===================== -->
+<section id="problems">
+  <h2><span class="hsh">§12</span>문제 관리 — 막힘 · 질문 · 이슈</h2>
+  <p>문제는 종류별로 <strong>다른 채널</strong>에 들어갑니다. 채팅에서 "어 이거 문제네"로 끝나지 않고 파일에 박제됩니다.</p>
+
+  <h3>① Question Queue (Q-XXX) — 결정이 필요한 것</h3>
+  <p>티켓이 막히거나 아키텍처 갈림길이면 <code>questions/QUEUE.md</code>에 표준 형식으로 적습니다. 핵심은 <strong>Options + Recommendation + Default</strong> — 사용자가 무응답이어도 Default로 진행 가능하게.</p>
+  <pre><code>## Q-005: TDD gate가 filing commit을 잘못 선택
+Status: [open] | [resolved] | [parked]
+Ticket: T-OS3-MEATION-PYTEST-ROOTDIR
+Blocking: yes | no
+Date: 2026-05-30
+
+**Question**: (전말)
+**Options**:  A) 게이트 수정 follow-up  B) 이 티켓 waiver  C) 히스토리 rewrite
+**Recommendation**: A + B — 로컬 TDD 순서는 지켜졌고, 공유 히스토리 rewrite는 위험
+**Default (if no response)**: A
+**Resolution (2026-05-30, CLAUDE1)**: A+B 채택. false-positive 확인. C 거부.</code></pre>
+  <p>세션 시작 시 CLAUDE1이 모든 <code>[open]</code>을 모아 triage합니다(Blocking 우선, 최대 5개, non-blocking이고 오늘 티켓에 영향 없으면 Default 가정하고 안 물음).</p>
+
+  <h3>② 막힘(blocked) — 진행이 멈춘 것</h3>
+  <p>티켓 자체에 <code>_blocked_reason</code> + <code>_blocked_log</code> + 전이 이력으로 기록(§6). 막힘은 보통 "엔진이 자동으로 멈춤"(preflight 실패, deps 미해결, 게이트 실패) 또는 "검토 BLOCKER"입니다. 둘 다 <strong>대개 Q-XXX로 사용자 결정을 요청</strong>합니다.</p>
+
+  <h3>③ Issue 인바운드 채널 (I-/P-/A-) — sister 프로젝트가 발견한 OS 결함</h3>
+  <p>다른 프로젝트가 dev-os를 쓰다 발견한 OS 차원 문제를 <code>devos/issues/HANDOFF-os2.md</code>로 인계합니다. ID 컨벤션:</p>
+  <div class="kv">
+    <dt>I-XX</dt><dd>Issue — dispatcher/SSOT 동작 결함, 버그</dd>
+    <dt>P-XX</dt><dd>Proposal — DX/워크플로 개선(명령 추가, 자동화)</dd>
+    <dt>A-XX</dt><dd>Architecture/Audit — 토큰 효율, 격리, 보안</dd>
+  </div>
+  <p>수령 시 처리: <strong>cross-reference(이미 고쳐졌나) → 8축 분석 → 4-cluster 재편 → Q1-Q3로 결정 추상화 → plan</strong>. 정량 데이터(누계 횟수, 영향 비율) 없는 항목은 우선순위 보장 안 됨. 실사례: 2026-04-30 deck 26항목 → ~10 메커니즘 fix로 압축.</p>
+  <div class="note miss"><span class="lbl">놓치기 쉬움</span><p>"문제"는 즉흥 수정이 아니라 <strong>26건을 3개 결정 포인트로 추상화</strong>하는 식으로 처리됩니다. 같은 근본 원인을 공유하는 항목은 묶고(예: "I-14+P-09 한 묶음"), 26건을 26티켓으로 만들지 않습니다. 그리고 처리 자체가 반복되면 그걸 다시 OS 메커니즘으로 만듭니다(이 README + HANDOFF 템플릿이 그 산물).</p></div>
+</section>
+
+<!-- ===================== 11 ===================== -->
+<section id="incident">
+  <h2><span class="hsh">§13</span>사고(Incident) → 잠긴 결정(Locked Decision)</h2>
+  <p>실제로 무언가 부서지면, 그것은 회고로 끝나지 않고 <strong>다시 못 일어나게 하는 강제 규칙</strong>이 됩니다. 시스템의 자기수정 루프입니다.</p>
+  <div class="card">
+    <h4 style="margin-top:0;color:var(--block)">2026-05-16 — dispatcher.py 손실 사고</h4>
+    <p style="margin:6px 0"><strong>무슨 일:</strong> reviewer sub-agent가 baseline 검증용으로 <code>git stash --keep-index --include-untracked -u</code>를 실행 → 내부 <code>git reset --hard</code>가 reflog에 기록 → 후속 dispatch가 손상된 working tree 위에서 동작 → <code>server/dispatcher.py</code> 유실.</p>
+    <p style="margin:6px 0"><strong>대응 (다층):</strong></p>
+    <ul style="margin:4px 0">
+      <li><strong>Locked Decision D-01</strong> 등재 — baseline test는 <code>scripts/baseline-test.sh</code>(임시 worktree)로만</li>
+      <li><strong>reviewer.md에 FORBIDDEN BASH</strong> 명문화 — <code>git stash/reset --hard/checkout HEAD --/clean -fd/rebase/cherry-pick/push -f</code> 등을 tools allowlist에 Bash가 있어도 실행 금지</li>
+      <li><strong>CLAUDE.md Rule 9</strong> 추가 — live-tree mutation 없는 baseline 검증 의무화</li>
+      <li>대안 명시: read-only 비교는 <code>git diff HEAD</code> / <code>git show HEAD:&lt;file&gt;</code></li>
+    </ul>
+  </div>
+  <p>이 패턴이 일반 원리입니다: <strong>사고 → 근본원인 → ① 검출 가능한 잠긴 결정(D-XX) ② 도구 차원 금지 ③ 문서 규칙</strong> 세 겹으로 박는다. "조심하자"로 끝내지 않습니다.</p>
+  <div class="note warn"><span class="lbl">규칙 갱신 정책 (ETHOS)</span><p>아무 사건에나 규칙을 추가하지 않습니다. <strong>Iron Law 추가는 같은 사건 3회 이상 반복 시</strong>, anti-pattern 추가는 실제 부채로 이어진 사례 1건 이상일 때만. 규칙 인플레이션을 경계합니다.</p></div>
+
+  <h3>가짜 양성(false-positive) 게이트 처리</h3>
+  <p>게이트가 틀리게 막는 경우도 문제로 다룹니다. 예: Q-004(allowlist된 더미 토큰을 gitleaks가 재검출), Q-005(TDD 게이트가 ticket-filing 커밋을 첫 구현 커밋으로 오선택). 처리 원칙: <strong>이 티켓은 waiver로 통과시키되, 게이트 자체를 고치는 follow-up 티켓을 별도로 만든다</strong>(공유 git 히스토리 rewrite는 거부).</p>
+</section>
+
+<!-- ===================== 12 ===================== -->
+<section id="enforce">
+  <h2><span class="hsh">§14</span>강제 장치 — 권한 · 역할 · 훅 · 게이트</h2>
+
+  <h3>① 권한 분리 (tools allowlist)</h3>
+  <table>
+    <thead><tr><th>에이전트</th><th>모델</th><th>tools</th><th>핵심</th></tr></thead>
+    <tbody>
+      <tr><td class="c1">CLAUDE1 main</td><td>Opus</td><td>full</td><td>코드 직접작성·직접OK 금지(룰)</td></tr>
+      <tr><td class="b">builder</td><td>sonnet</td><td>Read·Edit·Write·Bash·Grep·Glob</td><td>+context7 MCP. files 범위만</td></tr>
+      <tr><td class="r">reviewer</td><td>opus</td><td>Read·Grep·Glob·Bash</td><td><strong>Edit/Write 없음</strong> + FORBIDDEN BASH</td></tr>
+      <tr><td class="d">designer</td><td>sonnet</td><td>Read·Grep·Glob</td><td>+pencil MCP. 읽기 전용</td></tr>
+      <tr><td class="s">security</td><td>opus</td><td>Read·Grep·Glob·Bash</td><td>읽기 전용</td></tr>
+      <tr><td class="cx">CODEX</td><td>외부 CLI</td><td>subprocess·sandbox</td><td>project-scoped, devos/ 수정 금지</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">검토자가 "고치고 싶어도 못 고치는" 것은 신뢰가 아니라 <strong>tools 목록에 Edit/Write가 없어서</strong>입니다. 객관성을 구조로 강제.</p>
+
+  <h3>①-b 역할/권한 매트릭스 — 도구 권한 위의 "개념적 권한"</h3>
+  <p>위 표는 <em>실행 주체(에이전트)</em>의 도구 권한이고, 그 위에 <em>역할(role)</em>의 의사결정 권한 경계가 있습니다. 한 에이전트가 여러 역할을 겸할 수 있습니다(예: Claude가 Product Planner+Tech Planner). (출처: <code>ROLE_AUTHORITY_MATRIX.md</code>)</p>
+  <table>
+    <thead><tr><th>역할</th><th>결정 가능</th><th>차단 가능</th><th>하면 안 되는 것</th></tr></thead>
+    <tbody>
+      <tr><td><strong>PM</strong> (사람)</td><td>제품 방향·우선순위·취향·최종 수용·웨이버 승인</td><td>제품 방향/위험 수용 질문</td><td>저수준 코드·테스트·게이트 출력을 강제로 검증당하지 않음</td></tr>
+      <tr><td>Product Planner <span class="dim">(Claude)</span></td><td>user outcome·open question·acceptance·티켓 분해 초안</td><td>요구 모호 시 productization readiness</td><td>PM 승인 없이 비가역 제품 결정</td></tr>
+      <tr><td>Tech Planner/Architect <span class="dim">(Claude+Codex)</span></td><td>기술 옵션·리스크 통제·API/data/test/보안 권고</td><td>아키텍처/리스크 불명확 시 production readiness</td><td>근거 없는 큰 아키텍처 결정</td></tr>
+      <tr><td class="b">Builder</td><td>티켓 scope 내 구현 세부</td><td>scope/deps/구현 위험 발견 시 self-block</td><td>scope 밖 수정, 리뷰 우회, production을 혼자 done</td></tr>
+      <tr><td class="cx">Codex</td><td>infra·test·script·migration·실패분석·코드리뷰</td><td>테스트/게이트 실패, scope/rollback 위험</td><td>제품 방향 단독 결정, scope 조용히 확장, <code>code_ready</code>를 <code>done</code> 취급</td></tr>
+      <tr><td class="r">Reviewer</td><td>요구 적합·DOD·테스트 충분·유지보수 verdict</td><td>DOD 누락·약한 테스트·유지보수 퇴행</td><td>같은 패스에서 자기 finding을 조용히 직접 수정</td></tr>
+      <tr><td class="s">Security</td><td>secret/auth/권한/privacy/외부입력 verdict</td><td>고위험 이슈·required 보안리뷰 누락·불안전 웨이버</td><td>deterministic 검사 있는데 free-form 판단에만 의존</td></tr>
+      <tr><td class="d">Gemini Visual</td><td>렌더된 UI 결과 verdict</td><td>객관적 깨짐(blank/clip/overlap/responsive)</td><td>코드·보안·비즈니스로직·전략의 최종 승인자</td></tr>
+      <tr><td>Dispatcher <span class="dim">(결정적 프로그램)</span></td><td>routing·deps·owner/scope·게이트·상태전이·archive</td><td>hard policy 위반·required 게이트/웨이버 누락</td><td>주관적 제품/디자인 판단</td></tr>
+    </tbody>
+  </table>
+  <p class="muted"><strong>PM 에스컬레이션 트리거</strong>: 제품 의도 모호 / scope 확장 / 웨이버 필요 / UI가 취향·브랜드 문제(객관 깨짐 아님) / 보안·결제·데이터손실·비가역 위험 수용 / 같은 비객관 visual 이슈가 2회 반복. 이 외 "누가 코드를 치냐" 같은 건 에스컬레이션 대상이 아님(Rule 1이 이미 답).</p>
+
+  <h3>② Hooks (harness 차원, 자동 실행)</h3>
+  <p><code>.claude/settings.json</code>에 등록된 2개. CLAUDE1이 의식적으로 부르는 게 아니라 <strong>도구 호출 시점에 harness가 끼어듭니다</strong>.</p>
+  <table>
+    <thead><tr><th>훅</th><th>시점</th><th>동작</th></tr></thead>
+    <tbody>
+      <tr><td><code>guard-no-impl.sh</code></td><td>PreToolUse: Write/Edit</td><td>대상 경로가 <code>apps/ packages/ infra/ scripts/ tests/ src/ lib/ components/ …</code>면 <strong>exit 2로 차단</strong>(CLAUDE1의 코드 직접작성 물리 방지). <code>--advisory</code>면 경고만</td></tr>
+      <tr><td><code>context-monitor.js</code></td><td>PostToolUse: 모든 툴</td><td>statusline bridge 파일에서 컨텍스트 잔량을 읽어, <strong>≤35% WARNING / ≤25% CRITICAL</strong> 메시지를 에이전트에게 주입(5콜 디바운스, 심각도 상승 시 즉시)</td></tr>
+    </tbody>
+  </table>
+  <div class="note miss"><span class="lbl">놓치기 쉬움</span><p>Rule 1("코드 직접작성 금지")은 단순 문장 규칙이 아니라 <strong>실제로 Write/Edit를 exit 2로 막는 훅</strong>이 있습니다. 그래서 main이 <code>apps/**</code>를 실수로 고치려 하면 차단됩니다. 단, <code>devos/ .claude/ docs/</code> 같은 문서 경로는 허용 — 그래서 이 레퍼런스 HTML도 main이 직접 쓸 수 있는 겁니다. 또: 컨텍스트가 25% 밑으로 떨어지면 에이전트가 스스로 "새 복잡한 작업 시작하지 말고 handoff 준비"하라는 신호를 받습니다.</p></div>
+
+  <h3>③ pr-check — 스택 무관 베이스라인 게이트 5종</h3>
+  <ol>
+    <li><strong>Secret scan</strong> (gitleaks)</li>
+    <li><strong>Contract sync</strong> — API/UI 변경 시 계약 문서 동시 수정됐나</li>
+    <li><strong>Scope guard</strong> — 티켓 <code>files:</code> 밖 파일 수정 여부</li>
+    <li><strong>Session log presence</strong> — <code>logs/{date}-{agent}.md</code> 존재</li>
+    <li><strong>TDD first-commit</strong> — <code>tdd:required</code> 티켓의 첫 커밋에 테스트 파일</li>
+  </ol>
+
+  <h3>④ Iron Laws (ETHOS, 모든 에이전트 공통)</h3>
+  <ol>
+    <li>실패하는 테스트 없이 production 코드 없다 (비즈니스 로직)</li>
+    <li>근본원인 조사 없이 수정 없다</li>
+    <li>새 검증 증거 없이 "완료" 선언 없다</li>
+    <li>적대적 검토 통과 없이 머지 없다</li>
+    <li>티켓에 범위축소 어휘 없다</li>
+  </ol>
+  <p class="muted">우선순위 충돌 시: <strong>① 사용자 명시 지시 → ② ETHOS.md → ③ AI.md 운영규칙 → ④ Superpowers 스킬 → ⑤ 기본 시스템 프롬프트</strong>. 사용자가 "TDD 하지 마"라고 하면 스킬보다 사용자가 이깁니다.</p>
+</section>
+
+<!-- ===================== 13 ===================== -->
+<section id="context">
+  <h2><span class="hsh">§15</span>컨텍스트 · 토큰 관리</h2>
+  <p>1인+AI 운영의 숨은 비용은 토큰입니다. 시스템 곳곳에 절약·보호 장치가 박혀 있습니다.</p>
+  <table>
+    <thead><tr><th>장치</th><th>무엇을 한다</th></tr></thead>
+    <tbody>
+      <tr><td>QUEUE ↔ ARCHIVE 분리</td><td>QUEUE.yaml은 활성 티켓만. done은 ARCHIVE(623KB)로 이관 — 매 세션 80K 토큰 폭주 방지. lookup은 QUEUE→ARCHIVE fallback</td></tr>
+      <tr><td><code>AI-core.md</code> vs <code>AI.md</code></td><td>sub-agent는 슬림본(90줄)으로 부팅. 전문(AI.md, ~4K토큰)은 on-demand 부분 읽기</td></tr>
+      <tr><td>BOOT_INLINE</td><td>CLAUDE1이 AI-core.md 본문을 prompt에 인라인 주입 → sub-agent가 부팅 Read 라운드트립 생략(spawn당 200–400토큰 × N)</td></tr>
+      <tr><td>ARCHIVE 자동 Read 금지</td><td>builder/reviewer가 ARCHIVE.yaml 통째 Read 금지(80K 토큰). 단건은 <code>os3 lookup --archive {id}</code></td></tr>
+      <tr><td>context-monitor 훅</td><td>잔량 35/25%에서 자동 경고(§14)</td></tr>
+      <tr><td>세션 길이 규칙</td><td>~4시간 초과 또는 컨텍스트 thrashing 시 <code>/clear</code> + handoff. 반복 압축은 품질을 떨어뜨림</td></tr>
+      <tr><td>4줄 handoff</td><td><code>handoff-3lines.md</code>: Done / Next / Block(Q-id) / Log — 세션·모델 간 인계 표준</td></tr>
+      <tr><td><code>os3 cost-report</code></td><td>채널별(C1/C2/C0) 사용량 + 비용 추정 집계</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== 14 ===================== -->
+<!-- ===================== 16 · DISPATCHER INTERNALS ===================== -->
+<section id="dispatcher-internals">
+  <h2><span class="hsh">§16</span>디스패처 내부 — 락 · 스냅샷 · 리트라이</h2>
+  <p class="lead">§8이 "무슨 단계를 밟나"였다면, 여기는 <code>server/dispatcher.py</code>(127KB)가 "그 단계를 어떻게 안전하게 실행하나"입니다. 핵심은 셋: <strong>동시 실행 방지 · 변경 기준선 고정 · 실패 시 1회 리트라이</strong>. 주의 깊게 볼 점 — <strong>여기엔 git을 망가뜨리는 rollback이 없습니다</strong>(2026-05-16 사고의 교훈, §13).</p>
+
+  <h3>① Singleton PID 락 — 같은 프로젝트에 디스패처 둘 금지</h3>
+  <p>dispatch 류 명령은 진입 시 <strong>원자적 파일 생성</strong>으로 락을 잡습니다. 두 번째 프로세스는 즉시 거부됩니다.</p>
+  <pre><code>경로: ~/.os3/dispatcher.{project}.pid   <span class="dim"># home 쓰기 불가 시 devos/.dispatcher.pid</span>
+획득: os.open(path, O_CREAT | O_EXCL | O_WRONLY, 0o600)   <span class="dim"># EXCL = 이미 있으면 실패</span>
+내용: pid={현재 PID}\nstarted={ISO 타임스탬프}
+해제: __exit__ + atexit + SIGINT/SIGTERM 핸들러 (3중 — 비정상 종료에도 정리)
+충돌: FileExistsError → DispatcherSingletonError
+  └ 기존 PID가 살아있나? os.kill(pid, 0) 로 확인
+      ├ 살아있음 → "another instance is running (PID …)"  → 거부
+      └ 죽었음   → "stale dispatcher lock found …"        → 안내(수동 정리)</code></pre>
+  <p class="muted"><code>fcntl</code>이 없는 플랫폼이면 락을 <strong>건너뛰고 경고만</strong> 합니다(단일 사용자 환경 가정). stale 락은 자동 삭제하지 않고 사용자에게 알립니다 — 진짜 실행 중인 걸 죽이지 않기 위해.</p>
+
+  <h3>② Dispatch snapshot — diff 기준선은 HEAD SHA 하나</h3>
+  <p>구현 시작 직전, <code>_capture_dispatch_snapshot()</code>이 <code>git rev-parse HEAD</code> <strong>한 줄</strong>로 현재 SHA를 박아둡니다. 이게 이 디스패치의 <strong>diff 기준선</strong>입니다 — 게이트(scope guard, contract sync, TDD first-commit)가 "이 SHA 이후 무엇이 바뀌었나"를 봅니다.</p>
+  <div class="note key"><span class="lbl">왜 stash가 아니라 SHA인가</span><p>baseline을 만들려고 <code>git stash</code>/<code>worktree</code>를 쓰지 않습니다. 그냥 <strong>현재 HEAD의 SHA 문자열을 기억</strong>할 뿐 — working tree를 전혀 건드리지 않습니다. 캡처 실패(예: git 오류)면 <code>dispatch_snapshot_sha is None</code> → 디스패치를 <strong>아예 시작하지 않습니다</strong>(기준선 없이 게이트를 돌리는 위험 차단). 이게 §13 사고 이후 자리잡은 read-only 자세의 코드 레벨 구현입니다.</p></div>
+
+  <h3>③ 게이트 실패 → 1회 리트라이 (post-fail hook)</h3>
+  <p>게이트가 실패하면 즉시 blocked가 아니라, <strong>조건부 1회 자동 복구</strong>를 시도합니다:</p>
+  <div class="statemap">gates 실패 → _attempt_retry
+  1. stderr 패턴 매칭으로 post-fail hook 탐색 (_find_post_fail_hook)
+       └ 매칭 hook 없음 → 그대로 실패 반환
+  2. hook 액션 실행 (shell, &lt;project-root&gt; 치환, 기본 timeout 600s)
+       └ hook 자체 실패 → stderr에 사유 누적 후 실패 반환
+  3. hook.retry == true 일 때만 → 서브프로세스 1회 재실행
+  4. 재실행 후 게이트 재평가
+       ├ 통과 → done ("passed after retry")
+       └ 여전히 실패 → blocked ("gates still failing after retry")</code></div>
+  <p class="muted">리트라이는 <strong>무한 루프가 아니라 정확히 1회</strong>입니다. hook은 "알려진 일시적 실패"(예: 환경 셋업 누락)를 자동 교정하는 용도. <code>retry: false</code> hook은 교정만 하고 재실행은 안 합니다.</p>
+
+  <h3>④ 에이전트 self-block · 쿼터 감지</h3>
+  <ul>
+    <li><strong>self-block</strong>: 구현 에이전트가 핸드오프에서 <code>Block: Q-XXX</code>를 반환하면 <code>_mark_agent_self_blocked</code> → 즉시 <code>blocked</code> + <code>agent_self_blocked:</code> 사유(게이트까지 안 가고 short-circuit, 운영비 절감).</li>
+    <li><strong>쿼터 감지</strong>: CODEX subprocess stderr에서 쿼터 소진 패턴(<code>try again at HH:MM AM/PM</code>)을 정규식으로 잡아 <code>quota_exhausted: {reset}</code>로 기록 → 헛된 재시도 방지.</li>
+  </ul>
+</section>
+
+<!-- ===================== 17 · SSOT INTERNALS ===================== -->
+<section id="ssot-internals">
+  <h2><span class="hsh">§17</span>SSOT 동시성 — 파일 락 · 원자적 쓰기</h2>
+  <p>QUEUE/ARCHIVE는 평범한 YAML 파일이라 <strong>동시 쓰기 = 손상</strong> 위험이 있습니다. <code>server/ssot.py</code>(67KB)가 advisory 파일 락 + 원자적 교체로 막습니다.</p>
+
+  <h3>파일 락 (<code>acquire_file_lock</code>)</h3>
+  <pre><code>락 파일: .{name}.lock   (예: .QUEUE.yaml.lock)
+방식: fcntl.flock(fd, LOCK_EX | LOCK_NB)   <span class="dim"># 배타 + 논블로킹</span>
+재시도: BlockingIOError 시 0.1s 간격 폴링, 매 시도 stderr 로그
+타임아웃: 30s 기본 (OS3_FILE_LOCK_TIMEOUT 로 조정) → 초과 시 LockTimeoutError
+탈출구: fcntl 없는 플랫폼 → OS3_ALLOW_NO_LOCK=1 명시해야 진행(경고: race 가능)</code></pre>
+
+  <h3>원자적 쓰기 — 부분 읽기 방지</h3>
+  <p>쓰기는 항상 <strong>임시 파일에 먼저 쓰고 <code>os.replace()</code></strong>로 교체합니다(POSIX 원자적 rename). 그래서 다른 프로세스가 쓰는 도중의 반쪽짜리 파일을 읽는 일이 없습니다.</p>
+
+  <h3>세 개의 분리된 락 — 디스패치와 archive의 공존</h3>
+  <table>
+    <thead><tr><th>락 파일</th><th>보호 대상</th><th>핵심</th></tr></thead>
+    <tbody>
+      <tr><td><code>.QUEUE.yaml.lock</code></td><td>QUEUE.yaml 쓰기</td><td>티켓 상태 전이 시 배타</td></tr>
+      <tr><td><code>.archive.lock</code></td><td>디스패처 sentinel</td><td>archive 이관이 <em>진행 중</em>임을 표시. 디스패처는 <code>ensure_archive_not_locked</code>로 확인 — archive 도중 dispatch 금지</td></tr>
+      <tr><td><code>.archive-index.lock</code></td><td>ARCHIVE-INDEX 재빌드</td><td><code>.archive.lock</code>과 <strong>별개</strong>라서, 인덱스 재빌드가 디스패치 sentinel을 건드리지 않고 동시 진행 가능</td></tr>
+    </tbody>
+  </table>
+  <div class="note miss"><span class="lbl">놓치기 쉬움</span><p>락 파일이 두 종류로 나뉜 건 의도된 설계입니다 — <strong><code>.archive.lock</code>(이관 중이니 dispatch 멈춰)와 <code>.archive-index.lock</code>(인덱스만 다시 쓰는 중, dispatch는 계속 OK)</strong>를 분리해 불필요한 차단을 줄입니다. <code>os3 lookup</code>이 archive된 티켓도 찾는 건 ARCHIVE-INDEX 덕분이고, 그 인덱스도 원자적으로 재빌드됩니다.</p></div>
+</section>
+
+<!-- ===================== 18 · GEMINI ===================== -->
+<section id="gemini">
+  <h2><span class="hsh">§18</span>Gemini 시각 리뷰 채널</h2>
+  <p>UI 티켓에서 <strong>렌더된 화면을 실제로 보는</strong> 검토자. 코드·보안·최종 취향은 판단하지 않고, <em>객관적 시각 문제</em>만 봅니다. <code>server/gemini_dispatcher.py</code>(77KB) + <code>docs/policy/GEMINI_VISUAL_REVIEW_SCHEMA.md</code>.</p>
+
+  <h3>verdict 4종</h3>
+  <div class="kv">
+    <dt>pass</dt><dd>시각 문제 없음</dd>
+    <dt>request_changes</dt><dd>객관적 깨짐 발견 → 차단(Production UI)</dd>
+    <dt>needs_human_judgment</dt><dd>취향·트레이드오프 → PM 판단으로</dd>
+    <dt>infra_failure</dt><dd><strong>캡처/도구 실패 = 통과 아님.</strong> 리뷰 인프라 실패로 별도 처리</dd>
+  </div>
+
+  <h3>실행 파이프라인 (Plan A → Plan B)</h3>
+  <div class="statemap">1. smoke cache 확인: .cache/gemini-smoke-&lt;model&gt;.ok 없으면 생성
+     (gemini 바이너리가 실제로 도는지 사전 검증)
+2. 쿼터 확인: GeminiQuota — count >= daily_cap(기본 50) 이면 QuotaExceededError
+3. Plan A: gemini 직접 호출 (스크린샷 + 프롬프트)
+     └ 쿼터 초과 / 바이너리 없음 → Plan B: handoff fallback (사용자 수동 실행 안내)
+4. _check_no_yolo(cmd): --yolo / --approval-mode=yolo 있으면 YoloForbiddenError
+5. env whitelist: 지정된 키만 subprocess 에 전달 (ANTHROPIC_*/AWS_*/토큰 누출 차단)</code></div>
+
+  <h3>입력/출력 스키마 핵심</h3>
+  <pre><code>입력:  screens:[{name, viewport: 1440x900, image}]  expected_states:[loading,empty,error,success]
+       review_round: N   privacy_masking: true|false
+출력:  verdict + issues:[{severity: blocker|warning|note,
+         category: layout|clipping|overlap|blank_screen|responsive|state_missing|intent_mismatch|privacy|taste,
+         evidence, recommendation}]
+       same_issue_as_previous_round: true|false   <span class="dim"># ★ 반복이슈 추적 = visual loop 정책의 기반</span></code></pre>
+  <div class="note danger"><span class="lbl">보안 경계 (사고로 학습)</span><p>이 채널은 과거 보안 리뷰에서 BLOCKER가 다수 나온 영역입니다(Q-002, §10 참조): argv injection, shell 인터폴레이션 RCE, env 통째 상속, path traversal. 그 결과 <strong>yolo 금지 · env whitelist · 경로 검증 · 스크린샷 privacy masking</strong>이 박혔습니다. 스크린샷엔 실데이터가 찍힐 수 있어 Production 리뷰는 safe test data/masking 권장.</p></div>
+</section>
+
+<!-- ===================== 19 · COST / SCORECARD / PAIRED-RUN ===================== -->
+<section id="cost">
+  <h2><span class="hsh">§19</span>비용 회계 · 4축 점수 카드 · paired-run</h2>
+
+  <h3>채널별 비용 회계 (<code>os3 cost-report</code>)</h3>
+  <p>디스패치 로그의 <code>channels</code> 배열을 집계해 <strong>3개 비용 채널</strong>로 추정합니다(단가는 건당 대략값 USD):</p>
+  <table>
+    <thead><tr><th>채널</th><th>구성</th><th>건당 단가</th></tr></thead>
+    <tbody>
+      <tr><td><strong>C1</strong> Interactive (Max 5x)</td><td>reviewer_opus · security_opus · designer_sonnet</td><td>$0.20 · $0.20 · $0.10</td></tr>
+      <tr><td><strong>C2</strong> Agent SDK ($100/mo)</td><td>agent_review_haiku · review_claude_p</td><td>$0.017 · $0.07</td></tr>
+      <tr><td><strong>C0</strong> CODEX (OpenAI)</td><td>codex_subprocess · codex_cross_model(b')</td><td>$0.05 · $0.03</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">C2 사용액이 $80(크레딧 80%)을 넘으면 <code>WARN C2 usage > 80%</code> — extra-usage 토글 확인 경고. 이게 "리뷰를 어느 모델에 얼마나 시켰나"를 돈으로 환산해 보여줍니다.</p>
+
+  <h3>4축 점수 카드 (격주 의무, <code>balance-check.yaml</code>)</h3>
+  <p>Phase ship 직후 + 격주로 <strong>Quality / Speed / Cost / Security</strong> 4축을 기록해 균형을 감시합니다. 각 축의 ship/위험 임계:</p>
+  <table>
+    <thead><tr><th>축</th><th>핵심 지표 + 임계</th></tr></thead>
+    <tbody>
+      <tr><td>Quality</td><td>findings_recall ≥ 90% · <strong>blocker_misses = 0</strong> · mutation 생존자 ≤ 5% · user_acceptance ≥ 80%</td></tr>
+      <tr><td>Speed</td><td>avg ticket wallclock · baseline 대비 delta(음수=빨라짐) · 시간당 병렬 처리량</td></tr>
+      <tr><td>Cost</td><td>C1/C2/C0 월 추정 + 합계 · baseline 대비 delta(음수=절감)</td></tr>
+      <tr><td>Security</td><td>critical 오분류 = 0 · <strong>b' escalation 10–25%</strong>(이탈 시 임계 조정) · critical 티켓 full-chain = 100%</td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><span class="lbl">vetokill — 즉시 rollback 트리거</span><p>다음 중 하나라도 참이면 자동 제동: <strong>blocker_miss ≥ 1</strong>(즉시 rollback) · critical 오분류 ≥ 1(분류 protocol 재검토) · 속도 20%↓(paired-run 강도 완화/정지) · cost 증가(원인 분석). verdict는 <code>continue / pause / rollback</code>.</p></div>
+
+  <h3>paired-run (Phase 3/4) — 모델 교체 전 실측</h3>
+  <p>builder/CODEX의 모델을 더 싼 것으로 바꾸기 전에, <strong>같은 티켓을 두 모델로 동시 실행</strong>해 품질·비용을 실측합니다(<code>ticket.paired_run: true</code> 또는 PROJECT_STATE 플래그). 결과는 <code>devos/docs/paired-run/{date}-{id}.yaml</code>에 before/after로 기록되고 위 4축 카드로 흘러갑니다.</p>
+  <table>
+    <thead><tr><th>Phase</th><th>비교</th><th>ship 기준</th></tr></thead>
+    <tbody>
+      <tr><td>3 (UI)</td><td>builder Sonnet ↔ <strong>Haiku</strong></td><td>누적 3티켓 · recall ≥ 90% · BLOCKER 누락 0 · user_acceptance ≥ 80% · mutation 통과</td></tr>
+      <tr><td>4 (backend)</td><td>builder Sonnet ↔ <strong>CODEX</strong></td><td>누적 3티켓 · DOD 100%(양쪽) · mutation 통과 · critical cross_model 작동 확인</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">기준 충족 시에만 default를 바꿉니다(예: <code>builder.md</code> model을 sonnet→haiku). 즉 "싼 모델로 갈아타기"가 감이 아니라 <strong>3티켓 실측 + 4축 통과</strong>로만 일어납니다.</p>
+</section>
+
+<!-- ===================== 20 · PROJECT SCOPING ===================== -->
+<section id="scoping">
+  <h2><span class="hsh">§20</span>프로젝트 스코핑 — <code>.os3.yaml</code> · 격리</h2>
+  <p>호스트 1개가 여러 독립 프로젝트를 서비스하므로, "지금 어느 프로젝트인가"와 "그 프로젝트만의 설정"을 정확히 격리하는 게 중요합니다. (출처: <code>server/config.py</code> · <code>docs/superpowers/specs/2026-05-27-…-design.md</code>)</p>
+
+  <h3>프로젝트 인식 + 설정 레이어링</h3>
+  <pre><code>인식: --project &lt;name&gt;  또는  cwd 에서 위로 .os3.yaml 마커 탐색 (호스트 루트에서 정지)
+설정: 호스트 osn.yaml(기본값)  ⊕ deep-merge ⊕  프로젝트 .os3.yaml(오버레이)
+      → 프로젝트가 게이트/라우팅 일부를 자기 값으로 덮어쓸 수 있음</code></pre>
+  <p class="muted">그래서 <code>.os3.yaml</code>은 단순 마커가 아니라 <strong>프로젝트별 오버라이드 지점</strong>입니다(필수 키 <code>name:</code> + 선택적 게이트 오버라이드).</p>
+
+  <h3>실제 스코핑 사고 — bollard pr-check 오염 (2026-05-27)</h3>
+  <div class="card">
+    <p style="margin:0 0 6px"><strong>증상:</strong> bollard 티켓이 12/12 테스트 통과·리뷰 해소됐는데 <code>done</code>에 못 감. <code>pr-check</code>의 secret 스캔이 <strong>전혀 무관한 호스트 레포</strong>(<code>~/dev-os</code>)의 오래된 더미 토큰에서 실패.</p>
+    <p style="margin:6px 0"><strong>근본 원인:</strong> <code>handle_pr_check</code>가 <code>--project</code>를 무시하고 <code>Path.cwd()</code>로 gitleaks를 돌렸는데, 세션 cwd가 명령 사이에 호스트 루트로 리셋 → <strong>잘못된 레포</strong>를 스캔. (단독 <code>scan-secrets</code> 게이트는 project-scoped였으나 <code>pr-check</code> 집계 게이트만 누락.)</p>
+    <p style="margin:6px 0 0"><strong>2차:</strong> 0-commit 사각지대 — <code>gitleaks git</code>은 커밋 히스토리만 스캔하므로 갓 만든 0-commit 프로젝트는 <em>아무것도 안 보고 통과</em>.</p>
+  </div>
+  <p><strong>수정:</strong> ① <code>pr-check</code>가 <code>resolve_paths(project, cwd)</code>로 타깃을 명시 해결(ambient cwd 의존 금지) ② working-tree 스캔 <code>gitleaks dir &lt;project_root&gt;</code> 추가 + 커밋 ≥1일 때 <code>gitleaks git</code> 병행(0-commit 사각지대 보강).</p>
+
+  <h3>에이전트 가용성 — 갭이 아니었음 (정정됨)</h3>
+  <div class="note ok"><span class="lbl">정정 (2026-05-30) — 이 "갭"은 거짓이었다</span><p>이 절은 원래 "<code>os3 open</code>이 <code>--settings</code>만 주입하고 agents는 주입 안 해, named <code>builder</code>/<code>reviewer</code>가 generic(general-purpose/Explore)으로 fallback한다"는 <strong>알려진 scoping gap</strong>으로 적혀 있었으나 — <strong>실측으로 반증됐습니다</strong>(claude 2.1.158). Claude Code는 <code>.claude/agents/</code>를 <strong>cwd에서 상향 탐색</strong>하므로, 호스트 <code>~/dev-os/.claude/agents/</code>가 sub-project 세션에 <strong>자동 상속</strong>됩니다(프로젝트의 <code>.claude/</code>가 agents 없이 있어도 경계를 넘어 발견). 즉 <code>--settings</code>만 주입해도 named 에이전트가 정상 해소됩니다(설정은 실제로 미상속이라 주입이 필요). 오히려 그 "갭"을 메우려던 <code>launcher.py::_ensure_project_agents</code>가 모든 프로젝트에 <strong>절대경로 심링크를 박던 진짜 버그</strong>였고 <strong>T-OSN-LAUNCHER-AGENTS-NOSYMLINK</strong>(2026-05-30)로 제거됐습니다. 이 정정 자체가 OS-feedback 루프(INBOX #1)가 잘못된 믿음을 잡아낸 실사례입니다.</p></div>
+</section>
+
+<!-- ===================== 21 · MAP ===================== -->
+<section id="map">
+  <h2><span class="hsh">§21</span>파일 지도</h2>
+  <pre><code>~/dev-os/                        <span class="dim"># 호스트 = 엔진·규칙·공유 .claude (git 1개)</span>
+├── bin/os3, bin/osn             <span class="dim"># 단일 진입점 (osn=호환 alias)</span>
+├── server/                      <span class="dim"># 엔진 (Python)</span>
+│   ├── dispatcher.py (127KB)    <span class="dim"># 티켓 라우팅·실행의 심장</span>
+│   ├── ssot.py (67KB)           <span class="dim"># QUEUE/상태/SSOT 읽기·쓰기</span>
+│   ├── cli.py                   <span class="dim"># os3 서브커맨드 등록</span>
+│   ├── dashboard.py + dashboard_static/  <span class="dim"># 로컬 읽기전용 칸반(:8787)</span>
+│   ├── gemini_dispatcher.py     <span class="dim"># 시각 검토 채널</span>
+│   └── approval.py, feedback.py, projects_registry.py, ...
+├── .claude/
+│   ├── CLAUDE.md                <span class="dim"># CLAUDE1 운영 룰 (@import devos/AI.md)</span>
+│   ├── agents/{builder,reviewer,designer,security,builder-haiku}.md
+│   ├── hooks/{guard-no-impl.sh, context-monitor.js, statusline-wrapper.sh}
+│   └── settings.json            <span class="dim"># 훅·MCP·statusline 등록</span>
+├── devos/
+│   ├── AI.md / AI-core.md       <span class="dim"># 헌법 / 슬림 부팅본</span>
+│   ├── ETHOS.md                 <span class="dim"># 최종 판단 기준 (Iron Laws)</span>
+│   ├── CONTEXT.md               <span class="dim"># TL;DR + Locked Decisions(D-XX)</span>
+│   ├── PROJECT_STATE.md         <span class="dim"># 마일스톤·진행률 SSOT</span>
+│   ├── tasks/{QUEUE,ARCHIVE,ARCHIVE-INDEX}.yaml + .QUEUE.yaml.lock
+│   ├── questions/QUEUE.md       <span class="dim"># Q-XXX 결정 큐</span>
+│   ├── issues/                  <span class="dim"># I-/P-/A- 인바운드 + HANDOFF + README</span>
+│   ├── gates/user-outcome-review.md
+│   ├── plans/pending/           <span class="dim"># 승인 대기 plan</span>
+│   ├── prompts/claude/          <span class="dim"># dispatch·review·security·session-{start,end}·decompose-prd</span>
+│   ├── prompts/common/          <span class="dim"># scope-reduction·handoff·edit-failure-recovery</span>
+│   ├── prompts/codex/           <span class="dim"># CODEX 사전조사 prompts</span>
+│   ├── logs/{date}-{agent}.md   <span class="dim"># 세션 로그 (+learnings/*.jsonl, dispatch/, gemini/)</span>
+│   ├── docs/{ADR,API_CONTRACT,UI_CONTRACT,BUILDER_GUIDE,THREAT_MODEL,retrospective,...}
+│   ├── projects/{name}.md       <span class="dim"># 호스트 read-only 레지스트리</span>
+│   └── consumers/{name}.md      <span class="dim"># legacy 레코드 (Phase 4 대체 예정)</span>
+└── projects/                    <span class="dim"># 호스트 git이 ignore — 각자 독립 git 레포</span>
+    ├── meation/   apps/ packages/ + 자기 QUEUE/PROJECT_STATE/CONTEXT + .os3.yaml
+    └── bollard/   ...</code></pre>
+</section>
+
+<!-- ===================== 15 ===================== -->
+<section id="cli">
+  <h2><span class="hsh">§22</span>명령어 전체 (<code>os3</code>)</h2>
+  <h3>호스트 레벨 (프로젝트 횡단)</h3>
+<pre><code>os3 overview                  <span class="dim"># 전 프로젝트 todo/doing/blocked + 피드백 집계</span>
+os3 projects                  <span class="dim"># 등록 프로젝트 목록</span>
+os3 register &lt;name&gt; &lt;path&gt;     <span class="dim"># 호스트 레지스트리 등록</span>
+os3 open &lt;name&gt;               <span class="dim"># 세션 진입 (cd + 설정주입 + claude)</span>
+os3 feedback "&lt;text&gt;"         <span class="dim"># OS 중앙 피드백 백로그</span></code></pre>
+  <h3>프로젝트 레벨 (<code>--project</code> 또는 폴더 안)</h3>
+<pre><code>os3 status / queue / next / pending / logs       <span class="dim"># 조회</span>
+os3 lookup T-XXX             <span class="dim"># 티켓 전체 YAML (QUEUE→ARCHIVE)</span>
+os3 approve / reject "이유"   <span class="dim"># plan 승인·반려</span>
+
+os3 dispatch T-XXX           <span class="dim"># 단일 (owner 자동 라우팅)</span>
+os3 dispatch-codex T-XXX     <span class="dim"># CODEX 전용 subprocess</span>
+os3 dispatch-all / dispatch-next
+
+os3 verify T-XXX             <span class="dim"># 티켓 verify 실행</span>
+os3 pr-check                 <span class="dim"># 베이스라인 게이트 5종</span>
+os3 cross-model-codex T-XXX  <span class="dim"># b' 교차모델 2차 의견</span>
+os3 user-review T=T-XXX      <span class="dim"># user-outcome-review 게이트</span>
+os3 set-status T-XXX ...     <span class="dim"># 사유와 함께 상태 갱신</span>
+os3 close T-XXX              <span class="dim"># verdict 기록 + done 전진</span>
+os3 resume T-XXX             <span class="dim"># parked 티켓 재개</span>
+os3 archive                  <span class="dim"># done → ARCHIVE.yaml</span>
+os3 owner T-XXX              <span class="dim"># 티켓 owner 문자열</span>
+os3 dashboard                <span class="dim"># 로컬 읽기전용 칸반 (127.0.0.1:8787)</span>
+os3 cost-report              <span class="dim"># 채널별 사용량 + 비용 추정</span>
+os3 gemini dispatch T-XXX    <span class="dim"># Gemini 시각 검토</span>
+os3 pilot-status             <span class="dim"># OS3 E2E 파일럿 준비도</span></code></pre>
+  <p class="muted"><strong>Dispatcher singleton</strong>: dispatch 류는 프로젝트별 PID lock(<code>~/.os3/dispatcher.{project}.pid</code>)을 잡아 동시 실행을 막습니다. QUEUE.yaml은 <code>.QUEUE.yaml.lock</code>으로 보호.</p>
+</section>
+
+<!-- ===================== 16 ===================== -->
+<section id="blindspots">
+  <h2><span class="hsh">§23</span>놓치기 쉬운 자동동작 · 이 문서의 커버리지</h2>
+  <p>직접 코딩하지 않고 만들어진, 그래서 존재를 모르고 지나치기 쉬운 자동 동작 모음. 알고 쓰면 시스템이 훨씬 강해집니다.</p>
+  <div class="grid g2">
+    <div class="card"><h4 class="c1">전이 이력은 이미 다 남고 있다</h4><p>티켓이 왜 이 상태인지 채팅을 뒤지지 마세요. <code>_transition_history</code>에 actor·reason·ts가 전부 있습니다. <code>actor: dispatcher</code>면 엔진이 자동으로 막은 것.</p></div>
+    <div class="card"><h4>Default가 있으면 안 물어도 흐른다</h4><p>Q-XXX에 <code>Default</code>를 적어두면 non-blocking 질문은 무응답이어도 24h 후 Default로 진행. "물어보고 멈춤"을 줄이는 장치 — Default를 잘 적는 게 핵심.</p></div>
+    <div class="card"><h4 class="s">위험 키워드는 자동으로 감사를 켠다</h4><p>티켓 goal/dod에 삭제·결제·인증·권한·delete·payment·auth 등이 있으면 <code>security_audit</code>·<code>ethos:high</code>가 <strong>당신이 안 켜도</strong> 켜지고 풀 검토 + b'가 돕니다.</p></div>
+    <div class="card"><h4 class="d">UI 티켓은 screenshot_tool을 넣어야 눈 검사가 켜진다</h4><p>안 넣으면 user-outcome-review가 graceful skip. "자동검사 통과인데 화면이 이상한" Type B 결함을 잡으려면 명시 필요.</p></div>
+    <div class="card"><h4>5%는 일부러 빡세게 본다</h4><p>가벼운 경로도 5% 확률로 critical 승격. 가끔 "왜 이 사소한 티켓에 security가 붙지?" 싶으면 audit_sample일 수 있음 — 정상.</p></div>
+    <div class="card"><h4 class="cx">b'는 평소 안 돌고, 돌면 이유가 있다</h4><p>교차모델은 BLOCKER≥1 / WARNING≥3 / confidence&lt;0.7 / 위험티켓일 때만. fallback rate 10–25%가 건강 구간.</p></div>
+    <div class="card"><h4 class="r">검토자는 git을 망가뜨릴 수 없게 막혀 있다</h4><p>2026-05-16 사고 후 reviewer는 stash/reset/checkout/clean/rebase가 금지. baseline은 <code>scripts/baseline-test.sh</code>(임시 worktree)로만.</p></div>
+    <div class="card"><h4>금지어는 grep으로 걸린다</h4><p>"임시", "나중에", "v1으로 일단"을 티켓에 적으면 승인 직전 자동 grep + review BLOCKER. 단축본을 못 만들게 막는 장치.</p></div>
+    <div class="card"><h4>컨텍스트 25%면 스스로 멈추라는 신호를 받는다</h4><p>context-monitor가 에이전트에게 CRITICAL을 주입 → 새 복잡 작업 시작 금지 + handoff 준비 권고. 길어지면 <code>/clear</code> + 4줄 handoff.</p></div>
+    <div class="card"><h4>done은 쌓이면 자동으로 치워진다</h4><p>세션 끝에 done≥1이면 <code>os3 archive</code>가 자동 호출되어 ARCHIVE로 이관(토큰 보호). archive돼도 lookup·verify로 계속 참조 가능.</p></div>
+    <div class="card"><h4>같은 코드라도 mode가 게이트 결과를 바꾼다</h4><p><code>mode: exploration</code>이면 테스트·리뷰 실패가 <code>[REPORTED]</code> 경고로 내려가 done까지 통과. <code>production</code>이면 전부 차단. 티켓에 <code>mode</code>를 안 적으면 레거시=전부 차단. (§10–11)</p></div>
+    <div class="card"><h4>production은 "구현 끝"이 "완료"가 아니다</h4><p>구현자는 <code>code_ready</code>까지만. <code>done</code>은 dispatcher가 게이트·독립리뷰·웨이버·기록을 확인해야 부여. 예외는 PM 승인 inline 웨이버(W-XXX)로만.</p></div>
+  </div>
+
+  <div class="note ok" style="margin-top:18px"><span class="lbl">REV 3에서 보강된 심화 영역 (이제 다룸)</span>
+    <p>REV 1에서 "지도만 그리고 안 판" 영역들을 코드까지 파서 추가했습니다:</p>
+    <ul style="margin:6px 0 0">
+      <li><strong>§16</strong> 디스패처 내부 — PID 락·dispatch snapshot SHA·1회 리트라이·self-block·쿼터 감지 (rollback은 <em>없음</em> 확인)</li>
+      <li><strong>§17</strong> SSOT 동시성 — fcntl 파일 락·원자적 os.replace·3종 분리 락</li>
+      <li><strong>§18</strong> Gemini 채널 — verdict 4종·Plan A/B·smoke cache·보안 경계</li>
+      <li><strong>§19</strong> 비용 채널(C0/C1/C2)·4축 점수 카드·vetokill·paired-run</li>
+      <li><strong>§20</strong> 프로젝트 스코핑 — <code>.os3.yaml</code> 레이어링·bollard pr-check 오염 사고·에이전트 가용성 격리</li>
+    </ul>
+  </div>
+  <div class="note miss" style="margin-top:14px"><span class="lbl">여전히 코드 전사가 아닌 부분 (정직한 한계)</span>
+    <p>이 레퍼런스는 <strong>레이어·프로세스·핵심 알고리즘의 지도</strong>입니다. 다음은 동작을 정확히 기술하되 라인 단위 전사는 아닙니다 — 특정 함수의 정확한 분기까지 필요하면 소스를 직접 보거나 그 부분을 짚어 요청하세요:</p>
+    <ul style="margin:6px 0 0">
+      <li><code>dispatcher.py</code>의 5-way 분류·b' 트리거가 <em>코드</em>로 어디까지 구현됐는지 vs 프로토콜 문서(dispatch-orchestration.md)에만 있는지의 정밀 경계 — 일부는 CLAUDE1 main의 절차이고 일부는 엔진 강제</li>
+      <li><code>docs/policy/</code> 다수가 <strong>status: draft 교리</strong> — 항목별 코드 집행 여부가 다름(모드 게이트=구현, 웨이버 registry=미구현·inline만, 일부 역할=개념적)</li>
+      <li>Gemini handoff fallback(Plan B)의 사용자 paste UX 세부, gemini_quota 일일 카운팅 파일 포맷</li>
+      <li>launcher/launchd 상시 서버(<code>com.os3.server.plist</code>)와 원격 제어(Telegram 등 후속 스펙)</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===================== 17 ===================== -->
+<section id="glossary">
+  <h2><span class="hsh">§24</span>용어집</h2>
+  <table>
+    <tbody>
+      <tr><td><b>SSOT</b></td><td>Single Source of Truth. 진실 충돌 시 §2 위계로 판정</td></tr>
+      <tr><td><b>티켓 / 1=1</b></td><td>작업 최소 단위. 1 티켓 = 1 PR</td></tr>
+      <tr><td><b>DOD</b></td><td>완료 정의. 입력+기대출력으로 검증 가능해야. 성공↔에러 쌍 필수</td></tr>
+      <tr><td><b>D-XX (Locked Decision)</b></td><td>위반 시 자동 BLOCKER인 잠긴 결정. CONTEXT.md에 거주</td></tr>
+      <tr><td><b>Q-XXX</b></td><td>결정 필요 질문. Options+Recommendation+Default 형식</td></tr>
+      <tr><td><b>I-/P-/A-XX</b></td><td>sister 프로젝트가 인계한 OS 이슈/제안/감사 항목</td></tr>
+      <tr><td><b>b' (b-prime)</b></td><td>적응형 교차모델(CODEX) 2차검증. 정량 조건 충족 시만</td></tr>
+      <tr><td><b>fast-follow (FF)</b></td><td>user-outcome reject 시 자동 draft되는 후속 티켓 <code>{src}-FF-{ts}</code></td></tr>
+      <tr><td><b>pr-check</b></td><td>스택 무관 베이스라인 게이트 5종</td></tr>
+      <tr><td><b>BOOT_INLINE</b></td><td>AI-core.md 본문을 prompt에 주입해 부팅 Read 생략하는 토큰 절약</td></tr>
+      <tr><td><b>revision_delta</b></td><td>회고 v1→최종 항목 변화율. 게이트 아닌 메트릭(자가검증 압력)</td></tr>
+      <tr><td><b>scope-reduction</b></td><td>티켓에 금지된 범위축소 어휘. grep+review로 차단</td></tr>
+      <tr><td><b>classification (5-way)</b></td><td>critical/ui/backend_non_critical/docs_refactor + 5% sample 승격</td></tr>
+      <tr><td><b>Type B 결함</b></td><td>자동검사는 통과하나 결과가 시각·행동상 틀린 것. user-outcome-review가 담당</td></tr>
+      <tr><td><b>host-OS</b></td><td>엔진 1곳(~/dev-os) + 하위 독립 프로젝트. sync 없음</td></tr>
+    </tbody>
+  </table>
+</section>
+
+  <div class="foot">
+    dev-os 내부 구조 레퍼런스 · host-OS v1 / OS3 v0.1 · 생성 2026-05-30<br>
+    이 문서는 실제 운영 파일을 역설계한 스냅샷입니다. 규칙의 원천은 <code>devos/AI.md · ETHOS.md · CONTEXT.md · .claude/CLAUDE.md</code>이며, 충돌 시 그쪽이 우선합니다.<br>
+    마케팅용 소개본은 <code>devos/docs/dev-os-소개.html</code> (별도). 본 문서는 내부 이해용.
+  </div>
+</main>
+</div>
+</body>
+</html>

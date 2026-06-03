@@ -1,4 +1,4 @@
-/* OS3 Dashboard — app.js */
+/* deos Dashboard — app.js */
 'use strict';
 
 // ===== State =====

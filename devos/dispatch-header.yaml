@@ -15,10 +15,10 @@ agents:
   CODEX: platform builder for infra, data, scripts, tests, and mechanical changes.
 
 current_milestone:
-  name: OS3 doctrine/policy alignment and rename cleanup
+  name: deos doctrine/policy alignment and rename cleanup
   focus:
     - PM-friendly Exploration/Productization with Production-grade gates.
-    - Primary CLI is bin/os3; bin/osn remains compatibility alias.
+    - Primary CLI is bin/deos; bin/osn was removed (bin/deos is the sole entry point).
     - Reviewer independence, security review, Gemini visual review, and waiver auditability.
 
 session_handoff:

@@ -1,6 +1,6 @@
 """Central OS-feedback inbox for the host OS.
 
-`os3 feedback "..."` appends an entry to the host backlog
+`deos feedback "..."` appends an entry to the host backlog
 (`devos/os-feedback/INBOX.md`) from any project session, so OS-level friction
 surfaced anywhere is collected in one place (replaces manual retro "absorb").
 """

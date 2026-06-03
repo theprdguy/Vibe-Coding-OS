@@ -41,4 +41,4 @@ Install on both laptops (main + sub). Plugin cache lives in per-laptop `.claude/
 
 - Marketplace URL offline → ping the user
 - Plugin version mismatch → pin via `superpowers@<version>` in the install command
-- Don't try to copy cached plugin files between project repos manually — fragile, skips signature verification
+- Don't try to copy cached plugin files from basket/ into os2/ manually — fragile, skips signature verification

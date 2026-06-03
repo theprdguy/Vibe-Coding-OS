@@ -22,7 +22,7 @@ assignees: ''
 
 <!-- Which part of the OS would this change? Check all that apply. -->
 
-- [ ] `bin/os3` CLI
+- [ ] `bin/deos` CLI
 - [ ] `server/` dispatcher
 - [ ] `.claude/` agents or hooks
 - [ ] `devos/` doctrine / prompts

@@ -1,4 +1,4 @@
-# OS3 Mode Gate Matrix
+# deos Mode Gate Matrix
 
 Status: gate posture implemented (T-OS3-MODE-GATE-POSTURE) — `server/dispatcher.py` `_gate_is_blocking`
 

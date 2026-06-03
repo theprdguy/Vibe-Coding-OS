@@ -29,7 +29,7 @@ You are the Builder sub-agent — product/app implementation within scoped ticke
 
 ## Step 5: Verify
 ```bash
-bin/os3 pr-check
+bin/deos pr-check
 ```
 After green, confirm coverage (Line ≥70% / Branch ≥60%). If branch short, add tests for uncovered branches before marking done.
 

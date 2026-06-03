@@ -1,6 +1,6 @@
 ![Version](https://img.shields.io/badge/version-4.0-blue) ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg) ![GitHub Template](https://img.shields.io/badge/GitHub-Template-238636?logo=github) ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white) ![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey)
 
-# Vibe Coding OS
+# deos
 
 **One planner. A read-only review board. Two implementers. One laptop.**
 
@@ -16,8 +16,8 @@ A visual, illustrated walkthrough of the architecture — layers, agents, ticket
 
 | | Read it (rendered) | Fallback | Source |
 |---|---|---|---|
-| 🇬🇧 **English** | [**Open ↗**](https://theprdguy.github.io/Vibe-Coding-OS/docs/deep-dive.en.html) | [htmlpreview](https://htmlpreview.github.io/?https://github.com/theprdguy/Vibe-Coding-OS/blob/main/docs/deep-dive.en.html) | [`docs/deep-dive.en.html`](docs/deep-dive.en.html) |
-| 🇰🇷 **한국어** | [**열기 ↗**](https://theprdguy.github.io/Vibe-Coding-OS/docs/deep-dive.ko.html) | [htmlpreview](https://htmlpreview.github.io/?https://github.com/theprdguy/Vibe-Coding-OS/blob/main/docs/deep-dive.ko.html) | [`docs/deep-dive.ko.html`](docs/deep-dive.ko.html) |
+| 🇬🇧 **English** | [**Open ↗**](https://theprdguy.github.io/deos/docs/deep-dive.en.html) | [htmlpreview](https://htmlpreview.github.io/?https://github.com/theprdguy/deos/blob/main/docs/deep-dive.en.html) | [`docs/deep-dive.en.html`](docs/deep-dive.en.html) |
+| 🇰🇷 **한국어** | [**열기 ↗**](https://theprdguy.github.io/deos/docs/deep-dive.ko.html) | [htmlpreview](https://htmlpreview.github.io/?https://github.com/theprdguy/deos/blob/main/docs/deep-dive.ko.html) | [`docs/deep-dive.ko.html`](docs/deep-dive.ko.html) |
 
 <sub>**Open ↗** serves the page via GitHub Pages with full styling. GitHub's repo file view shows raw HTML source (not rendered) — that's expected; use the Open or htmlpreview link to read it.</sub>
 
@@ -51,9 +51,9 @@ A visual, illustrated walkthrough of the architecture — layers, agents, ticket
 
 ## What this is
 
-Vibe Coding OS is a multi-agent harness built on top of [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), Anthropic's CLI for Claude. It coordinates a **planner**, a **review board**, and **two implementers** that read and write to a shared file-based brain (the `devos/` directory) — so they always know what each other is doing without sharing a chat window.
+deos is a multi-agent harness built on top of [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview), Anthropic's CLI for Claude. It coordinates a **planner**, a **review board**, and **two implementers** that read and write to a shared file-based brain (the `devos/` directory) — so they always know what each other is doing without sharing a chat window.
 
-You write a Product Requirements Document (PRD). The planner (**CLAUDE1**) decomposes it into tickets and parks its research in each one. Implementers pick up tickets and ship code. A read-only review board checks the result. A Python dispatcher (`os3`) orchestrates the loop — verifying scope, running quality gates, escalating to a second model when uncertain, and recording an auditable trail of every state change.
+You write a Product Requirements Document (PRD). The planner (**CLAUDE1**) decomposes it into tickets and parks its research in each one. Implementers pick up tickets and ship code. A read-only review board checks the result. A Python dispatcher (`deos`) orchestrates the loop — verifying scope, running quality gates, escalating to a second model when uncertain, and recording an auditable trail of every state change.
 
 It's a **GitHub template repo**. Click "Use this template", run `scripts/setup.sh`, and you have a working setup in minutes.
 
@@ -70,7 +70,7 @@ Every developer who vibe-codes hits the same walls:
 3. **Context drift** → over a long session the agent forgets earlier decisions and contradicts itself.
 4. **No paper trail** → you can't reconstruct *what changed and why* a week later.
 
-Vibe Coding OS answers each one structurally: separated roles with **enforced** permissions, **evidence-before-done** Iron Laws, a **file-based SSOT** the agents reload each session, and an **append-only audit trail** (`_transition_history`, session logs) on every ticket.
+deos answers each one structurally: separated roles with **enforced** permissions, **evidence-before-done** Iron Laws, a **file-based SSOT** the agents reload each session, and an **append-only audit trail** (`_transition_history`, session logs) on every ticket.
 
 "PM-friendly" does **not** mean low quality. So that you *don't* have to verify every line, the OS is **stricter**, not looser — in Production mode it behaves like a strong development team (tests, security, error/empty/loading states, independent review, auditable waivers).
 
@@ -84,10 +84,10 @@ This is **Claude-Code-native and opinionated** — it is NOT a model-agnostic ha
 |---|---|---|---|
 | **Required** | [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) | Yes | Claude Code subscription. CLAUDE1 + all in-session sub-agents run here. |
 | **Optional** | [OpenAI Codex CLI](https://platform.openai.com/docs/codex/overview) | No | Enables the CODEX implementer (backend/infra/tests) and cross-model second opinion (b'). |
-| **Optional** | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | No | Visual-outcome reviewer for rendered UI (`os3 gemini`). |
+| **Optional** | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | No | Visual-outcome reviewer for rendered UI (`deos gemini`). |
 | **MCP** | [context7](https://github.com/upstash/context7) | No | Used by CLAUDE1 for up-to-date library API docs. |
 | **Plugin** | [obra/superpowers](https://github.com/obra/superpowers) | No | Agentic skills (brainstorming, writing-plans, systematic-debugging, etc.). Install: [`devos/docs/SKILLS_PLUGIN_INSTALL.md`](devos/docs/SKILLS_PLUGIN_INSTALL.md). |
-| **Runtime** | Python 3.10+ | Yes | For `server/` and `bin/os3`. |
+| **Runtime** | Python 3.10+ | Yes | For `server/` and `bin/deos`. |
 | **Platform** | macOS or Linux | Yes | Windows via WSL2 is untested. |
 
 ---
@@ -98,20 +98,20 @@ This is **Claude-Code-native and opinionated** — it is NOT a model-agnostic ha
 
 ```bash
 # From inside your existing project repo:
-bash /path/to/vibe-coding-os/scripts/dropin-init.sh
+bash /path/to/deos/scripts/dropin-init.sh
 ```
 
-This copies `.claude/` (agents, hooks, settings) into your repo and creates a minimal `devos/` skeleton (QUEUE.yaml, questions, PROJECT_STATE.md, CONTEXT.md) plus a `.os3.yaml` marker. The hook commands in the copied `settings.json` are rewritten to point at your repo's own `.claude/hooks/` directory, so the drop-in repo is **fully self-contained** — the hooks run from the copy inside your repo and the source OS clone does not need to remain in place. Run `claude` in that repo and CLAUDE1 picks up the doctrine immediately.
+This copies `.claude/` (agents, hooks, settings) into your repo and creates a minimal `devos/` skeleton (QUEUE.yaml, questions, PROJECT_STATE.md, CONTEXT.md) plus a `.deos.yaml` marker. The hook commands in the copied `settings.json` are rewritten to point at your repo's own `.claude/hooks/` directory, so the drop-in repo is **fully self-contained** — the hooks run from the copy inside your repo and the source deos clone does not need to remain in place. Run `claude` in that repo and CLAUDE1 picks up the doctrine immediately.
 
 | | Drop-in | Host-OS (full) |
 |---|---|---|
 | **Repos** | 1 | many (engine once, N projects) |
 | **Setup time** | ~5 min (one script) | ~15 min (clone host, register projects) |
-| **What you get** | Doctrine + agents + guard hooks + devos/ skeleton | Everything + `os3 dispatch`, `os3 open`, multi-project kanban, OS-feedback loop |
-| **os3 CLI** | Optional (install separately) | Built-in |
+| **What you get** | Doctrine + agents + guard hooks + devos/ skeleton | Everything + `deos dispatch`, `deos open`, multi-project kanban, OS-feedback loop |
+| **deos CLI** | Optional (install separately) | Built-in |
 | **Graduate to host-OS?** | Yes — see [host-OS model](#the-host-os-model--one-engine-many-projects) | — |
 
-> Drop-in still gives you the full agent panel (builder, reviewer, security, designer) and the guard-no-impl + context-monitor hooks. The copied `.claude/` is what runs — hooks fire from your repo's own `.claude/hooks/` directory. The Python `os3 dispatch` routing requires the host CLI on PATH; without it, use `claude` directly and dispatch manually.
+> Drop-in still gives you the full agent panel (builder, reviewer, security, designer) and the guard-no-impl + context-monitor hooks. The copied `.claude/` is what runs — hooks fire from your repo's own `.claude/hooks/` directory. The Python `deos dispatch` routing requires the host CLI on PATH; without it, use `claude` directly and dispatch manually.
 
 See a full example: [`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md).
 
@@ -142,13 +142,13 @@ You ──PRD──▶ CLAUDE1
                 │  1. intake checklist (force the missing error/edge/security cases)
                 │  2. extract user journeys → decompose into tickets
                 ▼
-        devos/plans/pending/  ──你 approve (os3 approve)──▶  devos/tasks/QUEUE.yaml
+        devos/plans/pending/  ──你 approve (deos approve)──▶  devos/tasks/QUEUE.yaml
                                                                     │
-                                              os3 dispatch T-XXX    ▼
+                                              deos dispatch T-XXX    ▼
                           owner=BUILDER → in-session sub-agent   owner=CODEX → subprocess
                                                     │  implements
                                                     ▼
-                          os3 pr-check  (secrets · contract sync · scope · session log · TDD)
+                          deos pr-check  (secrets · contract sync · scope · session log · TDD)
                                                     ▼
                   review board (reviewer / security / designer — read-only, by ticket type)
                                                     ▼
@@ -230,16 +230,16 @@ cd <your-os>
 export PATH="$(pwd)/bin:$PATH"   # for this session; setup.sh shows the permanent form
 
 # 3. Open a session (injects host settings + launches Claude Code)
-os3 open <project>          # or just run `claude` in the repo root to work on the OS itself
+deos open <project>          # or just run `claude` in the repo root to work on the OS itself
 
 # 4. In the session: submit a PRD → CLAUDE1 decomposes → approve → dispatch
-os3 status                  # current state
-os3 queue                   # active tickets
-os3 approve                 # approve a pending plan
-os3 dispatch T-XXX          # route a ticket to its owner (BUILDER in-session / CODEX subprocess)
-os3 pr-check                # baseline gates
-os3 archive                 # move done tickets to ARCHIVE.yaml
-os3 dashboard               # local read-only kanban at http://127.0.0.1:8787
+deos status                  # current state
+deos queue                   # active tickets
+deos approve                 # approve a pending plan
+deos dispatch T-XXX          # route a ticket to its owner (BUILDER in-session / CODEX subprocess)
+deos pr-check                # baseline gates
+deos archive                 # move done tickets to ARCHIVE.yaml
+deos dashboard               # local read-only kanban at http://127.0.0.1:8787
 ```
 
 You need [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) (required). See the [Requirements & compatibility](#requirements--compatibility) table above for optional tools.
@@ -252,26 +252,26 @@ The engine, agents, and doctrine live **once** in a host repo (clone it anywhere
 
 ```
 <host-repo>/              host = engine · doctrine · shared .claude (one git repo)
-├── server/  bin/os3  .claude/  devos/
+├── server/  bin/deos  .claude/  devos/
 └── projects/            (git-ignored by the host — each is its own repo)
-    ├── myproduct-a/      apps/ packages/ + its own devos/tasks · PROJECT_STATE · .os3.yaml
+    ├── myproduct-a/      apps/ packages/ + its own devos/tasks · PROJECT_STATE · .deos.yaml
     └── myproduct-b/      ...
 ```
 
-- **Engine in one place** — improve the OS once; every project gets it. No sync.
+- **Engine in one place** — improve deos once; every project gets it. No sync.
 - **Projects stay independent** — own repo, own task state, deployed separately.
-- **One entry point** — `os3 open <name>` enters any project with the host settings attached.
+- **One entry point** — `deos open <name>` enters any project with the host settings attached.
 
-> Using the template as a single project? That works too — keep `devos/` as your state, point `os3 pr-check` at your stack, and ignore `projects/`. The host-OS model is how it scales to several products.
+> Using the template as a single project? That works too — keep `devos/` as your state, point `deos pr-check` at your stack, and ignore `projects/`. The host-OS model is how it scales to several products.
 
-The OS also dogfoods a **demand-pulled improvement loop**: friction hit during product work is captured with `os3 feedback "..."` into `devos/os-feedback/INBOX.md`, reviewed at session start, and converted to tickets during a periodic consolidation pass.
+deos also dogfoods a **demand-pulled improvement loop**: friction hit during product work is captured with `deos feedback "..."` into `devos/os-feedback/INBOX.md`, reviewed at session start, and converted to tickets during a periodic consolidation pass.
 
 ---
 
 ## Repo layout
 
 ```
-bin/os3                  single entry point for all commands (osn = compat alias)
+bin/deos                 single entry point for all commands
 server/                  the engine (Python): dispatcher · ssot · cli · dashboard · launcher
   dispatcher.py          ticket routing · gates · retry · singleton lock · dispatch snapshot
   ssot.py                QUEUE/ARCHIVE read/write with file locks + atomic writes
@@ -314,16 +314,16 @@ Claude Code sub-agent support. The hooks require Claude Code's hook system.
 
 ## What's new in v4.0
 
-A major jump from the v3.x three-account model to **OS3 / host-OS**:
+A major jump from the v3.x three-account model to **deos / host-OS**:
 
 - **In-session sub-agent model** — "Claude 2 (Account B)" is sunset and folded into the **builder** sub-agent. One account; lower latency.
 - **Read-only review board** — reviewer / designer / security run with read-only tools (structural objectivity), spawned by ticket type.
 - **Operating modes** — exploration / productization / production set the gate posture, fail-closed, enforced in the dispatcher.
-- **`os3` CLI** replaces `make` and `os2.yaml`. Single entry point `bin/os3`.
-- **host-OS architecture** — one host engine, many independent project repos under `projects/`; `os3 open` injects host settings.
+- **`deos` CLI** replaces `make` and `os2.yaml`. Single entry point `bin/deos`.
+- **host-OS architecture** — one host engine, many independent project repos under `projects/`; `deos open` injects host settings.
 - **Cross-model safety net (b')** — quantitative trigger for a Codex second opinion (BLOCKER, low confidence, security finding, high-risk ticket).
-- **Local dashboard** — `os3 dashboard`, a build-free read-only kanban.
-- **OS-feedback loop** — `os3 feedback` captures OS friction into a reviewed backlog.
+- **Local dashboard** — `deos dashboard`, a build-free read-only kanban.
+- **OS-feedback loop** — `deos feedback` captures OS friction into a reviewed backlog.
 - **Incident → Locked Decision** pipeline and per-ticket `_transition_history` audit trail.
 
 ---
@@ -346,7 +346,7 @@ A major jump from the v3.x three-account model to **OS3 / host-OS**:
 
 Full change notes: [`CHANGELOG.md`](CHANGELOG.md).
 
-- **v4.0** (current) — **OS3 / host-OS.** In-session sub-agent model (Claude 2 sunset → builder), read-only review board (reviewer/designer/security), operating modes with fail-closed gate posture, `os3` CLI (replaces `make`/`os2.yaml`), host-OS architecture (one engine + independent project repos), quantitative cross-model (b') trigger, local kanban dashboard, OS-feedback loop, incident→Locked-Decision pipeline.
+- **v4.0** (current) — **deos / host-OS.** In-session sub-agent model (Claude 2 sunset → builder), read-only review board (reviewer/designer/security), operating modes with fail-closed gate posture, `deos` CLI (replaces `make`/`os2.yaml`), host-OS architecture (one engine + independent project repos), quantitative cross-model (b') trigger, local kanban dashboard, OS-feedback loop, incident→Locked-Decision pipeline.
 - **v3.4** — Adversarial prompt suite (PRD intake, adversarial review, security audit, cross-model, goal-backward verification, scope-reduction lint), ETHOS tiebreaker, dispatcher hardening, `preflight-codex.sh`.
 - **v3.3** — Skills integration via the Anthropic superpowers plugin, structured prompt library, expanded ops rules.
 - **v3.2** — Testing maturity Phase 3.5, Stage 0 baseline gates, branch-coverage enforcement (Line 70% / Branch 60%).
@@ -365,7 +365,7 @@ Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The short vers
 - All state lives in `devos/`
 - Contracts in `docs/API_CONTRACT.md` / `UI_CONTRACT.md` update **before** code
 - Use `status: todo` on new tickets (other statuses are silently skipped by the dispatcher)
-- Fork-friendly: keep `devos/`, wire your test runner into `os3 pr-check`, reset `devos/tasks/QUEUE.yaml`
+- Fork-friendly: keep `devos/`, wire your test runner into `deos pr-check`, reset `devos/tasks/QUEUE.yaml`
 
 ---
 
@@ -379,7 +379,7 @@ Third-party vendored sources and dependency attributions are documented in [`THI
 
 ## Credits & inspiration
 
-Vibe Coding OS stands on the shoulders of these projects. Where we vendor code, the file header carries the source URL and license. Where we borrow patterns or prompts, this section is the attribution of record.
+deos stands on the shoulders of these projects. Where we vendor code, the file header carries the source URL and license. Where we borrow patterns or prompts, this section is the attribution of record.
 
 **Built on:**
 - **[Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)** — Anthropic's CLI for Claude. The harness for CLAUDE1 and the in-session sub-agents.
@@ -394,4 +394,4 @@ If your work is referenced and you'd like an attribution updated, corrected, or 
 
 ---
 
-<sub>v4.0 · OS3 / host-OS · Built with Claude Code, Codex CLI, and the superpowers plugin · Patterns from GSD and GStack</sub>
+<sub>v4.0 · deos / host-OS · Built with Claude Code, Codex CLI, and the superpowers plugin · Patterns from GSD and GStack</sub>

@@ -1,8 +1,8 @@
-# OS3 Operation Guide
+# deos Operation Guide
 
 ## System Shape
 
-OS3 runs as a file-based product-building operating system:
+deos runs as a file-based product-building operating system:
 
 ```text
 PM / Claude 1 main
@@ -13,8 +13,7 @@ PM / Claude 1 main
   -> Gemini visual reviewer for material UI outcomes
 ```
 
-`bin/os3` is the primary CLI. `bin/osn` remains a compatibility alias for older
-automation. `osn.yaml` remains the compatibility config filename.
+`bin/deos` is the primary CLI. Config file is `deos.yaml` (`osn.yaml` removed).
 
 ## Daily Flow
 
@@ -22,7 +21,7 @@ automation. `osn.yaml` remains the compatibility config filename.
 
 ```bash
 git pull
-bin/os3 status
+bin/deos status
 claude
 ```
 
@@ -32,7 +31,7 @@ current ticket/plan context.
 ### End
 
 ```bash
-bin/os3 archive
+bin/deos archive
 git status --short
 git push
 ```
@@ -48,7 +47,7 @@ Archive only moves `done` tickets out of QUEUE. Historical ticket IDs are kept.
    - BUILDER: in-session app/product implementation.
    - CODEX: subprocess for platform, tests, infra, backend/data, and hardening.
    - CLAUDE1: policy/SSOT work only.
-5. Gates run through `bin/os3 pr-check` and ticket-specific `verify`.
+5. Gates run through `bin/deos pr-check` and ticket-specific `verify`.
 6. Reviewer is independent and read-only.
 7. Security runs for risk-bearing work.
 8. Gemini visual review runs for Production UI or material visual output.
@@ -100,35 +99,35 @@ Do not use `ready`, `pending`, or `queued` as ticket statuses.
 ## Common Commands
 
 ```bash
-bin/os3 status
-bin/os3 queue
-bin/os3 pending
-bin/os3 approve
-bin/os3 reject "reason"
-bin/os3 dispatch T-XXX
-bin/os3 dispatch-codex T-XXX
-bin/os3 dispatch-all
-bin/os3 verify T-XXX
-T=T-XXX AGENT_NAME=CODEX bin/os3 pr-check
-bin/os3 user-review T-XXX
-bin/os3 archive
+bin/deos status
+bin/deos queue
+bin/deos pending
+bin/deos approve
+bin/deos reject "reason"
+bin/deos dispatch T-XXX
+bin/deos dispatch-codex T-XXX
+bin/deos dispatch-all
+bin/deos verify T-XXX
+T=T-XXX AGENT_NAME=CODEX bin/deos pr-check
+bin/deos user-review T-XXX
+bin/deos archive
 ```
 
 ## Launchd Server
 
-Use `com.os3.server.plist` if a background server is needed. Update its
-`WorkingDirectory` to the local OS3 path first.
+Use `com.deos.server.plist` if a background server is needed. Update its
+`WorkingDirectory` to the local deos path first.
 
 ```bash
-cp com.os3.server.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.os3.server.plist
-launchctl kickstart -k gui/$(id -u)/com.os3.server
+cp com.deos.server.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.deos.server.plist
+launchctl kickstart -k gui/$(id -u)/com.deos.server
 ```
 
 ## Troubleshooting
 
-- Queue or status looks stale: run `bin/os3 status` and inspect `devos/PROJECT_STATE.md`.
+- Queue or status looks stale: run `bin/deos status` and inspect `devos/PROJECT_STATE.md`.
 - A ticket is blocked: inspect the latest relevant `devos/logs/` entry.
-- A UI result needs product judgment: use `bin/os3 user-review T-XXX` after PM review.
-- Gemini API path fails: use `bin/os3 gemini pending` then `bin/os3 gemini next`.
+- A UI result needs product judgment: use `bin/deos user-review T-XXX` after PM review.
+- Gemini API path fails: use `bin/deos gemini pending` then `bin/deos gemini next`.
 - Historical `T-OS2-*` or `T-OSN-*` IDs are expected; do not rename them without a dedicated migration ticket.

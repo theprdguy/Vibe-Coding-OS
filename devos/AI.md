@@ -1,4 +1,4 @@
-# AI Operating Rules (OS3 v0.1)
+# AI Operating Rules (deos v0.1)
 
 > **Sub-agent (builder/reviewer/security/designer) 부트용 슬림 버전: `devos/AI-core.md`.**
 > 본 파일은 CLAUDE1 main + on-demand 참조용 전문. sub-agent 가 이 전문을 Read 하면
@@ -46,21 +46,21 @@ cross-model second opinion. (옛 Claude 2 별도 Account B subprocess 모델은 
 
 "on demand" = read when ticket context requires. `@import` = transitively loaded via CLAUDE.md frontmatter.
 
-**QUEUE/ARCHIVE 분리** (T-OS2-CB-01 / ARCH-01): QUEUE.yaml은 active 티켓(todo/doing/blocked/parked)만 유지하고 done은 `devos/tasks/ARCHIVE.yaml`로 이관한다. dispatcher의 ticket lookup은 QUEUE → ARCHIVE 순으로 검색하므로 archive 된 ticket id 도 참조 가능. CLAUDE1은 done 누적 시(≥10건 또는 세션 종료) `bin/os3 archive` 실행. 자세한 운영 규칙은 `.claude/CLAUDE.md` § DONE ARCHIVE 참조.
+**QUEUE/ARCHIVE 분리** (T-OS2-CB-01 / ARCH-01): QUEUE.yaml은 active 티켓(todo/doing/blocked/parked)만 유지하고 done은 `devos/tasks/ARCHIVE.yaml`로 이관한다. dispatcher의 ticket lookup은 QUEUE → ARCHIVE 순으로 검색하므로 archive 된 ticket id 도 참조 가능. CLAUDE1은 done 누적 시(≥10건 또는 세션 종료) `bin/deos archive` 실행. 자세한 운영 규칙은 `.claude/CLAUDE.md` § DONE ARCHIVE 참조.
 
 ## Dispatch Model
 
-**OS3**: 두 dispatch 모드 공존.
+**deos**: 두 dispatch 모드 공존.
 
 ### A. In-session sub-agent (BUILDER)
 - CLAUDE1 main 안에서 `Agent(subagent_type="builder", prompt=...)` 호출
 - own context window — main conversation history 미상속, 단 같은 세션 내 spawn (저레이턴시)
 - ticket 처리 후 Done/Block/Log 요약을 main 으로 반환
-- **/dispatch slash 진입점 (CLAUDE1 main 안에서만 호출)** — Bash 에서 `bin/os3 dispatch X-BUILDER` 시 안내 + exit 2
+- **/dispatch slash 진입점 (CLAUDE1 main 안에서만 호출)** — Bash 에서 `bin/deos dispatch X-BUILDER` 시 안내 + exit 2
 - review chain: builder 완료 후 reviewer/security/designer sub-agent 가 parallel multi-tool-call 로 spawn (read-only)
 
 ### B. External subprocess (CODEX)
-- Bash 에서 `bin/os3 dispatch-codex X` 또는 `bin/os3 dispatch X` (owner 자동 감지)
+- Bash 에서 `bin/deos dispatch-codex X` 또는 `bin/deos dispatch X` (owner 자동 감지)
 - 옛 dispatch 모델 그대로 — fresh subprocess, 컨텍스트 0 부터 시작
 - session log 작성 후 main 이 log Read 로 결과 수집 + review chain 적용
 
@@ -73,7 +73,7 @@ What gets loaded at dispatch:
 Implications:
 - Tickets MUST be self-contained. A builder reading only the ticket + SSOT must be able to execute.
 - `context:` field is where CLAUDE1 parks research findings.
-- **No recursive dispatch**: a running ticket / sub-agent must not invoke `bin/os3 dispatch` or spawn another sub-agent. Escalate via `devos/questions/QUEUE.md` instead.
+- **No recursive dispatch**: a running ticket / sub-agent must not invoke `bin/deos dispatch` or spawn another sub-agent. Escalate via `devos/questions/QUEUE.md` instead.
 - **b' adaptive trigger**: reviewer/security sub-agent 의 `uncertainty=true` 시 main 이 자동 `cross_model_codex` 호출 (subprocess) — 평상 비용 0, 의심 시만 vendor diversity 안전망
 
 ## Memory Save Triggers (auto-memory MEMORY.md)
@@ -102,7 +102,7 @@ Session-end trigger detail: see `devos/prompts/claude/session-end.md` — 회고
 
 | Agent | Role | Mode | Model | Can Modify | Cannot Modify |
 |-------|------|------|-------|-----------|---------------|
-| **CLAUDE1 main** | Planner + Researcher + SSOT manager + **Orchestrator** | interactive | Opus (user-pinned per session) | devos/**, .claude/**, .claude/agents/**, AGENTS.md, osn.yaml (compatibility filename), server/** (bootstrap 한시) | apps/**, packages/**, scripts/**, infra/**, tests/** (delegate to sub-agent) |
+| **CLAUDE1 main** | Planner + Researcher + SSOT manager + **Orchestrator** | interactive | Opus (user-pinned per session) | devos/**, .claude/**, .claude/agents/**, AGENTS.md, deos.yaml, server/** (bootstrap 한시) | apps/**, packages/**, scripts/**, infra/**, tests/** (delegate to sub-agent) |
 | **builder** (subagent: true) | App + platform implementer (CLAUDE2 후신) | in-session | sonnet (pinned in `.claude/agents/builder.md`) | apps/api/src/**, apps/web/**, packages/shared/** | devos/tasks/QUEUE.yaml, devos/PROJECT_STATE.md |
 | **reviewer** (subagent: true) | Adversarial PR reviewer | in-session, **READ-ONLY** | opus | (none — 권한 시스템 강제) | (everything) |
 | **designer** (subagent: true) | UI/UX 1차 필터 | in-session, **READ-ONLY** | sonnet | (none) | (everything) |
@@ -246,7 +246,7 @@ Example:
 - Claude 1 reviews the report next session and creates follow-up tickets for gaps.
 
 ### 7. Common Baseline Gates (All Tickets)
-`bin/os3 pr-check` runs these independent of stack:
+`bin/deos pr-check` runs these independent of stack:
 1. Secret scan (gitleaks)
 2. Contract sync check (contract doc ↔ code co-modification)
 3. Ticket scope guard (files outside ticket's `files:` list)

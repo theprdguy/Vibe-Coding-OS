@@ -1,6 +1,6 @@
 version: '3.0'
 
-# ─── OS3 Ticket Queue (example / template) ───
+# ─── deos Ticket Queue (example / template) ───
 # CLAUDE1 (planner) writes WHAT + CONTEXT; the implementer (BUILDER or CODEX) decides HOW.
 # Only `status: todo` tickets are picked up by the dispatcher. Done tickets move to ARCHIVE.yaml.
 #

@@ -56,13 +56,14 @@ create_repo() {
 
   mkdir -p "$repo_dir/scripts" "$repo_dir/apps/api" "$repo_dir/apps/web" "$repo_dir/devos/docs" "$repo_dir/devos/logs" "$repo_dir/devos/tasks"
   mkdir -p "$repo_dir/.venv/bin"
-  cp "$ROOT_DIR/Makefile" "$repo_dir/Makefile"
   cp "$ROOT_DIR/scripts/check-contract-sync.sh" "$repo_dir/scripts/check-contract-sync.sh" 2>/dev/null || true
   cp "$ROOT_DIR/scripts/check-ticket-scope.sh" "$repo_dir/scripts/check-ticket-scope.sh" 2>/dev/null || true
   cp "$ROOT_DIR/scripts/check-session-log.sh" "$repo_dir/scripts/check-session-log.sh" 2>/dev/null || true
   cp "$ROOT_DIR/scripts/check-tdd-first-commit.sh" "$repo_dir/scripts/check-tdd-first-commit.sh" 2>/dev/null || true
   cp "$ROOT_DIR/scripts/setup.sh" "$repo_dir/scripts/setup.sh"
   ln -sf "$(command -v python3)" "$repo_dir/.venv/bin/python3"
+  # Minimal deos.yaml so bin/deos pr-check stays in the temp repo dir (no auto-chdir to ROOT_DIR).
+  printf 'project: test\n' > "$repo_dir/deos.yaml"
 
   cat > "$repo_dir/devos/docs/API_CONTRACT.md" <<'EOF'
 # API Contract
@@ -90,7 +91,10 @@ tickets:
   - scripts/setup.sh
   - tests/integration/test_baseline_gates.sh
 EOF
-  cat > "$repo_dir/devos/logs/2026-04-19-codex.md" <<'EOF'
+  # Use today's date so check-session-log.sh (which uses `date '+%Y-%m-%d'`) finds the log.
+  local today
+  today="$(date '+%Y-%m-%d')"
+  cat > "$repo_dir/devos/logs/${today}-codex.md" <<'EOF'
 # session log
 EOF
 
@@ -115,9 +119,11 @@ run_pr_check() {
   (
     cd "$repo_dir"
     if [ -n "$agent_name" ]; then
-      PATH="$repo_dir/bin:$PATH" AGENT_NAME="$agent_name" make pr-check
+      PATH="$repo_dir/bin:$PATH" AGENT_NAME="$agent_name" \
+        PYTHONPATH="$ROOT_DIR" python3 "$ROOT_DIR/bin/deos" pr-check
     else
-      PATH="$repo_dir/bin:$PATH" make pr-check
+      PATH="$repo_dir/bin:$PATH" \
+        PYTHONPATH="$ROOT_DIR" python3 "$ROOT_DIR/bin/deos" pr-check
     fi
   ) >"$output_file" 2>&1 || exit_code=$?
 
@@ -190,21 +196,23 @@ test_session_log_missing_warns() {
   local repo_dir
   repo_dir="$(create_repo session-log)"
   write_stub_gitleaks "$repo_dir" "pass"
-  rm -f "$repo_dir/devos/logs/2026-04-19-codex.md"
+  rm -f "$repo_dir/devos/logs/"*-codex.md
 
   run_pr_check "$repo_dir" "codex"
 
   assert_exit_code "$PR_CHECK_EXIT_CODE" 0
   assert_contains "$PR_CHECK_OUTPUT" "session log missing"
   assert_contains "$PR_CHECK_OUTPUT" "Set AGENT_NAME env or mark ticket as doing"
-  assert_contains "$PR_CHECK_OUTPUT" "AGENT_NAME=CODEX make pr-check"
+  assert_contains "$PR_CHECK_OUTPUT" "AGENT_NAME=CODEX bin/deos pr-check"
 }
 
 test_session_log_prefers_agent_name_env() {
   local repo_dir
   repo_dir="$(create_repo env-agent)"
   write_stub_gitleaks "$repo_dir" "pass"
-  cat > "$repo_dir/devos/logs/2026-04-19-claude1.md" <<'EOF'
+  local today
+  today="$(date '+%Y-%m-%d')"
+  cat > "$repo_dir/devos/logs/${today}-claude1.md" <<'EOF'
 # claude1 session log
 EOF
 
@@ -233,8 +241,10 @@ PY
     cd "$repo_dir"
     git config user.email "claude2@example.com"
   )
-  rm -f "$repo_dir/devos/logs/2026-04-19-codex.md"
-  cat > "$repo_dir/devos/logs/2026-04-19-claude2.md" <<'EOF'
+  local today
+  today="$(date '+%Y-%m-%d')"
+  rm -f "$repo_dir/devos/logs/"*-codex.md
+  cat > "$repo_dir/devos/logs/${today}-claude2.md" <<'EOF'
 # claude2 session log
 EOF
 
@@ -263,8 +273,10 @@ PY
   cat > "$repo_dir/.claude/.claude.json" <<'EOF'
 {}
 EOF
-  rm -f "$repo_dir/devos/logs/2026-04-19-codex.md"
-  cat > "$repo_dir/devos/logs/2026-04-19-claude1.md" <<'EOF'
+  local today
+  today="$(date '+%Y-%m-%d')"
+  rm -f "$repo_dir/devos/logs/"*-codex.md
+  cat > "$repo_dir/devos/logs/${today}-claude1.md" <<'EOF'
 # claude1 session log
 EOF
 

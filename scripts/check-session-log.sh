@@ -120,7 +120,7 @@ if [ "$agent_source" = "$agent_info" ]; then
 fi
 
 if [ -z "$agent_name" ]; then
-  echo "⚠️ WARN session-log: unable to determine agent name. Set AGENT_NAME env or mark ticket as doing. Example: AGENT_NAME=CLAUDE1 bin/os3 pr-check"
+  echo "⚠️ WARN session-log: unable to determine agent name. Set AGENT_NAME env or mark ticket as doing. Example: AGENT_NAME=CLAUDE1 bin/deos pr-check"
   exit 0
 fi
 
@@ -145,5 +145,5 @@ if [ -f "$matched_log_file" ]; then
   echo "✅ PASS session-log${fallback_tag}"
 else
   echo "⚠️ WARN session-log${fallback_tag}: session log missing ($log_file)"
-  echo "Set AGENT_NAME env or mark ticket as doing. Example: AGENT_NAME=${agent_name_upper} bin/os3 pr-check"
+  echo "Set AGENT_NAME env or mark ticket as doing. Example: AGENT_NAME=${agent_name_upper} bin/deos pr-check"
 fi

@@ -42,7 +42,7 @@ Error handling:
 ## 2. CLAUDE1 decomposition → tickets
 
 CLAUDE1 runs the PRD intake checklist, extracts user journeys, and produces a plan saved to
-`devos/plans/pending/notes-api-mvp.yaml`. After you run `os3 approve`, the tickets land in
+`devos/plans/pending/notes-api-mvp.yaml`. After you run `deos approve`, the tickets land in
 `devos/tasks/QUEUE.yaml`.
 
 ### Resulting QUEUE.yaml (excerpt)
@@ -148,22 +148,22 @@ tickets:
 
 ```bash
 # Review the pending plan:
-os3 pending
+deos pending
 
 # Approve it (moves tickets to QUEUE.yaml):
-os3 approve notes-api-mvp
+deos approve notes-api-mvp
 
 # Check the queue:
-os3 queue
+deos queue
 
 # Dispatch tickets (CODEX tickets first as they have no deps):
-os3 dispatch T-NOTES-01
+deos dispatch T-NOTES-01
 # ... CODEX runs, commits scaffold + failing tests, marks code_ready
 
-os3 dispatch T-NOTES-02
+deos dispatch T-NOTES-02
 # ... CODEX runs endpoints + makes tests pass
 
-os3 dispatch T-NOTES-03
+deos dispatch T-NOTES-03
 # ... BUILDER runs in-session, writes the README
 ```
 
@@ -225,7 +225,7 @@ With no BLOCKERs:
 
 ```bash
 # Mark done and archive:
-os3 archive
+deos archive
 
 # Merge the branch to main as normal. The ticket transition history is preserved in
 # ARCHIVE.yaml for audit.

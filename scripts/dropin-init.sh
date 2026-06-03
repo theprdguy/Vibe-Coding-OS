@@ -1,33 +1,33 @@
 #!/usr/bin/env bash
-# dropin-init.sh — scaffold Vibe Coding OS into an existing single repo.
+# dropin-init.sh — scaffold deos into an existing single repo.
 #
-# Run from the root of the repo you want to adopt the OS into:
+# Run from the root of the repo you want to adopt deos into:
 #   cd /path/to/your-project
-#   bash /path/to/vibe-coding-os/scripts/dropin-init.sh
+#   bash /path/to/deos/scripts/dropin-init.sh
 #
 # What this does:
 #   1. Copies .claude/ (agents, hooks, settings) into your repo.
 #   2. Creates a minimal devos/ skeleton (QUEUE.yaml, questions/QUEUE.md,
 #      PROJECT_STATE.md, CONTEXT.md).
-#   3. Writes a .os3.yaml marker so `os3` commands resolve this directory.
+#   3. Writes a .deos.yaml marker so `deos` commands resolve this directory.
 #   4. Rewrites .claude/settings.json hook paths to point at THIS repo's own
 #      .claude/hooks/ directory (absolute, target-local), making the drop-in
-#      repo fully self-contained. The source OS clone does not need to remain
+#      repo fully self-contained. The source deos clone does not need to remain
 #      in place for the hooks to fire.
 #
 # Idempotent: re-running skips files that already exist.
 #
-# NOTE on full os3 dispatch:
-#   The `os3 dispatch` command (Python subprocess routing) requires the host
-#   `bin/os3` CLI on PATH. You can either:
+# NOTE on full deos dispatch:
+#   The `deos dispatch` command (Python subprocess routing) requires the host
+#   `bin/deos` CLI on PATH. You can either:
 #   (a) Install the full host-OS (see README "host-OS model" section), or
-#   (b) Run the OS in drop-in mode, which still gives you:
+#   (b) Run deos in drop-in mode, which still gives you:
 #       - CLAUDE1 doctrine + agent definitions (.claude/agents/)
 #       - Read-only review/security/designer agents
 #       - The guard-no-impl + context-monitor hooks
 #       - devos/ SSOT skeleton for tickets, plans, logs, and questions
 #   Graduate to the host-OS model when you want multi-project support and
-#   full `os3` CLI routing.
+#   full `deos` CLI routing.
 
 set -euo pipefail
 
@@ -46,11 +46,11 @@ OS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TARGET_DIR="$(pwd)"
 
 if [ "$TARGET_DIR" = "$OS_ROOT" ]; then
-  printf "error: run this from your project repo, not from the Vibe Coding OS repo itself.\n" >&2
+  printf "error: run this from your project repo, not from the deos repo itself.\n" >&2
   exit 1
 fi
 
-info "Vibe Coding OS drop-in init"
+info "deos drop-in init"
 info "Source:  $OS_ROOT"
 info "Target:  $TARGET_DIR"
 printf "\n"
@@ -113,7 +113,7 @@ if [ -f "$QUEUE" ]; then
 else
   cat > "$QUEUE" <<'YAML'
 version: '3.0'
-# Vibe Coding OS — active ticket queue.
+# deos — active ticket queue.
 # See docs/policy/TICKET_SCHEMA.md for the full field reference.
 tickets: []
 YAML
@@ -181,15 +181,15 @@ MD
   ok "Created devos/CONTEXT.md"
 fi
 
-# ── 3. .os3.yaml marker ───────────────────────────────────────────────────────
-OS3_YAML="$TARGET_DIR/.os3.yaml"
-if [ -f "$OS3_YAML" ]; then
-  skip ".os3.yaml"
+# ── 3. .deos.yaml marker ──────────────────────────────────────────────────────
+DEOS_YAML="$TARGET_DIR/.deos.yaml"
+if [ -f "$DEOS_YAML" ]; then
+  skip ".deos.yaml"
 else
-  cat > "$OS3_YAML" <<YAML
-# .os3.yaml — Vibe Coding OS project marker.
-# This file tells os3 CLI that this directory is a project root.
-# Override any host osn.yaml defaults below (all fields optional).
+  cat > "$DEOS_YAML" <<YAML
+# .deos.yaml — deos project marker.
+# This file tells deos CLI that this directory is a project root.
+# Override any host deos.yaml defaults below (all fields optional).
 
 # project_root is resolved automatically from this file's location.
 # devos_dir: devos                       # default
@@ -197,7 +197,7 @@ else
 # plans_dir: devos/plans                 # default
 # logs_dir: devos/logs                   # default
 YAML
-  ok "Created .os3.yaml"
+  ok "Created .deos.yaml"
 fi
 
 # ── Done ──────────────────────────────────────────────────────────────────────
@@ -212,7 +212,7 @@ printf "  2. CLAUDE1 will load doctrine from .claude/agents/builder.md + devos/ 
 printf "\n"
 printf "  3. Submit a PRD. CLAUDE1 decomposes it into tickets in devos/tasks/QUEUE.yaml.\n"
 printf "\n"
-printf "  4. To use full os3 dispatch (Python routing), install the host CLI:\n"
+printf "  4. To use full deos dispatch (Python routing), install the host CLI:\n"
 printf "       See README section 'host-OS model — one engine, many projects'\n"
 printf "\n"
 printf "  Without the host CLI you still have: doctrine, agent definitions, guard hooks,\n"

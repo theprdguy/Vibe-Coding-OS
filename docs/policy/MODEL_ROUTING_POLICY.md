@@ -1,4 +1,4 @@
-# OS3 Model Routing Policy
+# deos Model Routing Policy
 
 Status: draft
 
@@ -7,7 +7,7 @@ Implements doctrine principles:
 - Use each LLM/tool where it is strongest.
 - More Codex context should expand evidence gathering and hardening, not product
   decision authority.
-- Builder and Codex are sibling implementation paths under OS3, not parent/child
+- Builder and Codex are sibling implementation paths under deos, not parent/child
   of each other.
 
 ## Model Topology

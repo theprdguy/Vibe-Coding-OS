@@ -1,26 +1,59 @@
 .DS_Store
-worktrees/
 __pycache__/
 *.pyc
 .env
 .env.local
+*.egg-info/
+dist/
+build/
 .venv/
 venv/
 node_modules/
+worktrees/
 devos/plans/pending/*.yaml
 devos/plans/approved/*.yaml
 devos/plans/rejected/*.yaml
+
+# Runtime files
+.osn-server.log
+.osn-server.pid
+
+# Gemini dispatcher cache (smoke-ok markers, spike images)
+.cache/
+
+# Gemini runtime logs — may contain PII/secrets in failure_reason, response text
+devos/logs/gemini/*.jsonl
+devos/logs/gemini/*.md
+
+# Dispatcher raw stdout/stderr capture — debug artifact (audit body is session log)
+devos/logs/dispatch/
+
+# Claude B auth credentials (OAuth tokens - never commit)
 .claude-b/.claude.json
 .claude-b/todos/
 .claude-b/backups/
 .claude-b/projects/
 .claude-b/plugins/
+.claude-b/mcp-needs-auth-cache.json
+.claude-b/shell-snapshots/
 
+# Claude A runtime (session state, backups, project indexes)
 .claude/.claude.json
 .claude/backups/
 .claude/projects/
+.claude/scheduled_tasks.lock
 
-.os2-server.log
-.os2-server.pid
+# Dispatcher singleton lock (runtime)
+devos/tasks/.QUEUE.yaml.lock
 
-.pytest_cache/
+# Gemini Plan B pending flag files (runtime state — never commit)
+# W6 fix (T-OSN-W7-GEMINI-02 R2): prevent accidental `git add -A` commit
+devos/state/gemini_pending_*.flag
+# Gemini daily quota Q-* sentinel (T-OSN-W7-GEMINI-04 R2 fix — cross-process atomic)
+devos/state/quota_q_*.flag
+
+# Gemini daily quota counter files (runtime state — T-OSN-W7-GEMINI-04)
+server/state/gemini_quota_*.json
+server/state/gemini_quota_*.lock
+server/state/gemini_quota_*.tmp
+/projects/

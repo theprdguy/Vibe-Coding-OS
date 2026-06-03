@@ -1,7 +1,7 @@
 """Cross-project overview for the host OS.
 
 Aggregates ticket counts from every registered project's QUEUE so the host can
-show a unified status table (`os3 overview`). Read-only: never writes into projects.
+show a unified status table (`deos overview`). Read-only: never writes into projects.
 One unreadable project must not break the whole table.
 """
 from __future__ import annotations

@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-Vibe Coding OS is MIT-licensed (see `LICENSE`). This file lists vendored
+deos is MIT-licensed (see `LICENSE`). This file lists vendored
 sources and dependency attributions.
 
 ---

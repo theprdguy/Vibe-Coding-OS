@@ -19,7 +19,7 @@
 ## Step 1 — Ticket lookup + pre-flight
 
 ```bash
-bin/os3 lookup {id}      # canonical entrypoint; lookup 은 QUEUE→ARCHIVE fallback. (T= prefix 금지: 순수 ticket id)
+bin/deos lookup {id}      # canonical entrypoint; lookup 은 QUEUE→ARCHIVE fallback. (T= prefix 금지: 순수 ticket id)
 ```
 
 반환: ticket JSON (또는 not_found error). pre-flight 검사:
@@ -91,7 +91,7 @@ builder sub-agent 는 own context window 로 작업 → Done/Block/Log 반환.
 ### Step 3b — CODEX dispatch (subprocess)
 
 ```bash
-bin/os3 dispatch-codex {id}
+bin/deos dispatch-codex {id}
 ```
 
 옛 codex CLI subprocess 흐름 그대로. 종료 후:
@@ -100,14 +100,14 @@ bin/os3 dispatch-codex {id}
 
 ### Step 3c — CLAUDE1 직접 처리
 
-policy/SSOT doc ticket (devos/, .claude/, AGENTS.md, osn.yaml compatibility config, root docs scope).
+policy/SSOT doc ticket (devos/, .claude/, AGENTS.md, osn.yaml compatibility config, root docs scope). <!-- osn.yaml: compatibility filename — preserved verbatim -->
 main 이 직접 실행 — 옛 룰 그대로. session log 는 `devos/logs/{date}-claude1.md`
 한 파일에 누적.
 
 ## Step 4 — pr-check gate
 
 ```bash
-T={id} bin/os3 pr-check
+T={id} bin/deos pr-check
 ```
 
 옛 gate (secret scan, contract sync, scope guard, session log 존재) 그대로 실행.
@@ -169,7 +169,7 @@ elif classification == 'backend_non_critical':
     # Phase 5 진입 전: Opus reviewer + 4축 점수 카드 기록
     Agent(reviewer, prompt="ticket {id} diff\n<BOOT_INLINE>...</BOOT_INLINE>")
     # Phase 5 활성 시 (devos/PROJECT_STATE.md 의 phase_5_active 플래그):
-    #   claude_p_review(ticket_id)   # C2 채널 — bin/os3 review --headless
+    #   claude_p_review(ticket_id)   # C2 채널 — bin/deos review --headless
 
 elif classification == 'docs_refactor':
     # self-verify only — sub-agent spawn 없음
@@ -177,7 +177,7 @@ elif classification == 'docs_refactor':
 
 # Gemini visual reviewer (별도 채널 — UI ticket 자동)
 if ticket.get('gui_review') == True or any('apps/web/' in f for f in ticket.files):
-    bash("bin/os3 gemini dispatch {id}")   # Plan A 자동
+    bash("bin/deos gemini dispatch {id}")   # Plan A 자동
 ```
 
 read-only sub-agent 들이라 충돌 X. 모두 결과 schema (verdict / findings /
@@ -216,7 +216,7 @@ if classification == 'ui' and paired_run_phase_3_active:
 
 elif classification == 'backend_non_critical' and paired_run_phase_4_active:
     result_a = Agent(builder, prompt="...")              # sonnet — 현행
-    result_b = bash("bin/os3 dispatch-codex {id}")       # CODEX — alt
+    result_b = bash("bin/deos dispatch-codex {id}")       # CODEX — alt
     record_paired_run(ticket, result_a, result_b)
 ```
 
@@ -262,7 +262,7 @@ def should_escalate_to_codex(reviewer, security, ticket) -> bool:
     return False
 
 if should_escalate_to_codex(reviewer, security, ticket):
-    codex_verdict = bash(f"bin/os3 cross-model-codex {ticket.id} --reason='{reason}'")
+    codex_verdict = bash(f"bin/deos cross-model-codex {ticket.id} --reason='{reason}'")
     # CODEX 60s timeout. timeout 시 reviewer 단독 verdict + 'b_fallback' WARNING.
 else:
     codex_verdict = None
@@ -313,7 +313,7 @@ T-OSN-X {done|blocked} — path: {ui|backend_non_critical|backend_critical|docs_
 이 헤더가 없으면 사용자가 매번 "어느 path 였지? 어느 모델이 build/review 했지?" 물어봐야
 함 — 균형안의 인지 부담 영구 drag 완화 메커니즘.
 
-세션 종료 직전 `done >= 1` 시: `bin/os3 archive` 1회.
+세션 종료 직전 `done >= 1` 시: `bin/deos archive` 1회.
 
 ---
 

@@ -1,8 +1,8 @@
-# Architecture (OS3 v0.1)
+# Architecture (deos v0.1)
 
 ## System Overview
 
-OS3 is a product-building operating system that turns PM product intent into scoped, tested, reviewed, secure, and auditable software work with bounded LLM collaborators.
+deos is a product-building operating system that turns PM product intent into scoped, tested, reviewed, secure, and auditable software work with bounded LLM collaborators.
 
 ```
 ┌─────────────────────────────────────────┐
@@ -46,7 +46,7 @@ All SSOT state lives here. Stack-agnostic. Never in the app code.
 | `questions/QUEUE.md` | Async question queue |
 | `docs/` | API/UI contracts, ADRs, architecture |
 
-### OS3 server (The Nervous System)
+### deos server (The Nervous System)
 Always-running Python process. Handles TG + dispatch.
 
 | Module | Purpose |
@@ -56,13 +56,13 @@ Always-running Python process. Handles TG + dispatch.
 | `dispatcher.py` | owner routing, policy gates, state transitions |
 | `ssot.py` | SSOT file readers/writers |
 | `approval.py` | Approval workflow state machine |
-| `config.py` | Load `osn.yaml` compatibility config |
+| `config.py` | Load `deos.yaml` config (`osn.yaml` removed) |
 
 ### Agents
 
 | Agent | Mode | Config | Scope |
 |-------|------|--------|-------|
-| CLAUDE1 main | interactive | .claude/CLAUDE.md | devos/, .claude/, AGENTS.md, osn.yaml, server/ (bootstrap 한시) |
+| CLAUDE1 main | interactive | .claude/CLAUDE.md | devos/, .claude/, AGENTS.md, deos.yaml, server/ (bootstrap 한시) |
 | builder (sub) | in-session via Agent tool | .claude/agents/builder.md (sonnet) | apps/api/src/**, apps/web/**, packages/shared/** |
 | reviewer / designer / security (sub) | in-session, READ-ONLY | .claude/agents/{name}.md | (no write — review only) |
 | Codex | external CLI subprocess | AGENTS.md | apps/web/** (shared, mechanical), apps/api/**, packages/**, infra/**, scripts/**, tests/**, styles/** |
@@ -75,14 +75,14 @@ No shared memory, no RPC. The repo IS the communication channel.
 
 ### Dual-mode Claude 1
 Local: interactive Claude Code CLI (primary path)
-Remote: OS3 server invokes `claude -p` for each TG request
+Remote: deos server invokes `claude -p` for each TG request
 Both modes share the same devos/ state.
 
 ### Approval Workflow
 PRD → plan → user approval → dispatch. No auto-execution.
 Plans saved to plans/pending/, moved to approved/ or rejected/.
 
-### In-session sub-agent (OS3 v0.1)
+### In-session sub-agent (deos v0.1)
 builder/reviewer/designer/security 는 CLAUDE1 main 안에서 `Agent(subagent_type=...)` 로 spawn.
 own context window — main conversation history 미상속. fresh context per invocation = no degradation.
 ~~Account B credentials via `CLAUDE_CONFIG_DIR=.claude-b`~~ — sunset 2026-05-13 (W6 완료).
@@ -103,7 +103,7 @@ CODEX: bulk renames, pattern replacements, large mechanical edits.
 Target maturity: **Phase 3.5** (contract tests + UI smoke + scenario integration).
 Full policy in `devos/AI.md` "Testing Policy" section.
 
-### Gate Flow (`bin/os3 pr-check`)
+### Gate Flow (`bin/deos pr-check`)
 
 ```
 commit / PR

@@ -7,7 +7,7 @@ You are CLAUDE1 (Reviewer). Review a PR diff with these checks.
 2. **Contract-first**:
    - `apps/api/**` changed → `devos/docs/API_CONTRACT.md` must be updated in same PR
    - `apps/web/**` changed → `devos/docs/UI_CONTRACT.md` must be updated in same PR
-3. **Verification**: PR description includes evidence of `bin/os3 pr-check` passing.
+3. **Verification**: PR description includes evidence of `bin/deos pr-check` passing.
 4. **1 PR = 1 ticket**: scope matches exactly one ticket.
 5. **Test quality** (see `.claude/CLAUDE.md` TEST REVIEW CHECKPOINTS):
    - Assertion specificity (no naked `assert response` truthy checks)

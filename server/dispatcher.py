@@ -366,7 +366,7 @@ def validate_ticket(ticket: dict) -> dict:
 
 
 def _normalize_ticket_file_paths(files: object) -> list[str]:
-    """Return git pathspecs from ticket files, stripping OS3 NEW markers."""
+    """Return git pathspecs from ticket files, stripping deos NEW markers."""
     if isinstance(files, str):
         raw_files = [files]
     else:
@@ -1922,7 +1922,7 @@ class Dispatcher:
             self._validate_production_gate_requirements(ticket, gates)
             return gates
 
-        # Use defaults from osn.yaml
+        # Use defaults from deos.yaml
         gates = [copy.deepcopy(gate) for gate in defaults]
 
         # Add tag-based gates
@@ -2219,7 +2219,7 @@ class Dispatcher:
                 default_gate = lookup.get(gate)
                 if default_gate is None:
                     raise ValidationError(
-                        f"unknown gate name: '{gate}', see osn.yaml gates.defaults"
+                        f"unknown gate name: '{gate}', see deos.yaml gates.defaults"
                     )
                 normalized.append(copy.deepcopy(default_gate))
                 continue

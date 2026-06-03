@@ -1,11 +1,11 @@
-# Builder Guide (OS3 v0.1)
+# Builder Guide (deos v0.1)
 
 > **호출 컨벤션 (W6 sunset 후, 2026-05-13)**: BUILDER 는 CLAUDE1 main 안에서 `Agent(subagent_type="builder", ...)` 로 spawn 되는 **in-session sub-agent** (옛 CLAUDE2 Account B subprocess 의 후신). own context window, main conversation history 미상속, ticket body 만 inline 전달. 완료 시 `Done: {id} — {what}` 또는 `Block: Q-id` 반환. 자유 호출 금지 — `/dispatch` 절차 (`devos/prompts/claude/dispatch-orchestration.md`) 안에서만.
 
 ## Session Start
 1. Read devos/ SSOT files (AI.md, PROJECT_STATE.md, CONTEXT.md)
 2. **Ticket 본문은 dispatcher 가 prompt header 에 inline 으로 전달함** — QUEUE.yaml 추가 Read 불필요. cross-ticket 참조 (deps sibling, 같은 plan 의 다른 ticket 등) 가 필요할 때만 QUEUE.yaml Read.
-3. ARCHIVE.yaml 은 자동 Read 금지 (306 KB 트랩) — 사용자 명시 요청 또는 `bin/os3 lookup --archive {id}` 사용.
+3. ARCHIVE.yaml 은 자동 Read 금지 (306 KB 트랩) — 사용자 명시 요청 또는 `bin/deos lookup --archive {id}` 사용.
 4. Check deps — only start if dependencies are done
 5. Read latest devos/logs/ for cross-agent context
 6. Read relevant contract docs (API_CONTRACT.md or UI_CONTRACT.md)

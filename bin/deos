@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""bin/os3 — single entry point for all OS3 commands."""
+"""bin/deos - canonical entry point for deos commands."""
 import sys
 from pathlib import Path
 

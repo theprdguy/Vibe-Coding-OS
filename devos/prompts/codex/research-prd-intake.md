@@ -13,7 +13,7 @@
 
 ```bash
 codex exec "$(cat <<'EOF'
-You are doing PRD intake research for the OS3 project. Return findings as
+You are doing PRD intake research for the deos project. Return findings as
 structured markdown — no recommendations on architecture, just facts.
 
 ## PRD topic
