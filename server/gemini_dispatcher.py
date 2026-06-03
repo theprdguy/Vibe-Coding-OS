@@ -274,7 +274,7 @@ def _redact_pii(text: str) -> str:
 def _resolve_gemini_binary() -> str:
     """Resolve the Antigravity (agy) or gemini CLI binary to an absolute path.
 
-    Antigravity migration (canonical project, 2026-05-23): Gemini CLI sunsets
+    Antigravity migration (meation canonical, 2026-05-23): Gemini CLI sunsets
     2026-06-18. Prefers `agy` (Antigravity CLI, new), falls back to `gemini`
     (legacy) during the transition window.
 
@@ -650,15 +650,15 @@ class GeminiDispatcher:
         except OSError as e:
             logger.warning("Could not write pending flag: %s", e)
 
-        # R6 (Phase 0): guidance updated — make gemini-* targets removed (OS3-wide RCE).
-        # Use OS3 CLI for Gemini handoff commands.
+        # R6 (Phase 0): guidance updated — make gemini-* targets removed (deos-wide RCE).
+        # Use deos CLI for Gemini handoff commands.
         print(
             f"\n[gemini-handoff] Plan A failed for {ticket_id}.\n"
             f"Pending flag created. Script written to: {script_path}\n\n"
             f"Next step:\n\n"
             f"  python3 -m server.gemini_handoff next\n\n"
             f"  (Picks the oldest pending ticket automatically.)\n"
-            f"  `bin/os3 gemini next` 로 대기 중인 handoff 를 확인하세요.\n"
+            f"  `bin/deos gemini next` 로 대기 중인 handoff 를 확인하세요.\n"
             f"Waiting for manual paste...\n",
             file=sys.stdout,
             flush=True,
@@ -794,7 +794,7 @@ class GeminiDispatcher:
         W1 fix: case-insensitive + space-separated form (--approval-mode YOLO)
         detected by scanning adjacent arg pairs.
 
-        Template sync: also rejects
+        Meation sync (T-OS3-GEMINI-TEMPLATE-SYNC): also rejects
         --dangerously-skip-permissions (agy CLI equivalent of --approval-mode yolo)
         from manual dispatch path. The agentic visual review path (run_agentic_visual)
         handles --dangerously-skip-permissions explicitly with project_root scope.
@@ -947,7 +947,7 @@ class GeminiDispatcher:
         return None
 
     def _with_visual_review_schema_prompt(self, prompt: str) -> str:
-        """Append the OS3 visual review schema contract to a GUI review prompt."""
+        """Append the deos visual review schema contract to a GUI review prompt."""
         return f"{prompt.strip()}\n\n{VISUAL_REVIEW_SCHEMA_PROMPT}"
 
     def _extract_visual_review_payload(

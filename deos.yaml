@@ -1,4 +1,4 @@
-# osn.yaml — Sub-agent Orchestration OS v0.1 Configuration
+# deos.yaml — Sub-agent Orchestration OS v0.1 Configuration
 # Server + Dispatcher configuration
 
 project_root: "."
@@ -60,7 +60,7 @@ gates:
     - name: "scan-secrets"          # alias used by ticket schema
       run: "gitleaks git --no-banner --redact ."
     - name: "pr-check"               # baseline gate runner (host-absolute: gates run in project cwd)
-      run: "$HOME/dev-os/bin/osn pr-check"
+      run: "$HOME/dev-os/bin/deos pr-check"
     - name: "review"
       type: "agent-review"
   by_tag:

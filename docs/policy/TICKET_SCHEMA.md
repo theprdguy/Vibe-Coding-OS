@@ -1,4 +1,4 @@
-# OS3 Ticket Schema Policy
+# deos Ticket Schema Policy
 
 Status: draft
 

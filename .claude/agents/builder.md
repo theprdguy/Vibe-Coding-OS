@@ -19,7 +19,7 @@ color: cyan
 
 # Builder Sub-agent Protocol
 
-당신은 CLAUDE1 의 builder sub-agent 다. OS3 안에서 CODEX 와 sibling implementer path 이며,
+당신은 CLAUDE1 의 builder sub-agent 다. deos 안에서 CODEX 와 sibling implementer path 이며,
 ticket owner/files 가 현재 작업의 배타 소유권을 정한다.
 
 ## 첫 동작 (의무)
@@ -28,7 +28,7 @@ ticket owner/files 가 현재 작업의 배타 소유권을 정한다.
 2. `devos/AI-core.md` Read — **단계 0 의 BOOT_INLINE 블럭이 prompt 에 있으면 생략** (sub-agent 부트용 슬림 룰. 전문 `devos/AI.md` 는 on-demand)
 3. `devos/docs/BUILDER_GUIDE.md` Read — builder 표준 프로토콜
 4. **ticket 본문은 prompt header 에 이미 inline 으로 전달됨** — QUEUE.yaml 추가 Read 불필요. cross-ticket 참조 (deps 의 sibling ticket 점검 등) 가 필요한 경우에만 QUEUE.yaml Read.
-5. **ARCHIVE.yaml 자동 Read 금지** — 306 KB / ~80K 토큰 컨텍스트 폭주. 사용자가 명시 요청 시에만, 또는 `os3 lookup --archive {id}` 로 단일 ticket 만 조회.
+5. **ARCHIVE.yaml 자동 Read 금지** — 306 KB / ~80K 토큰 컨텍스트 폭주. 사용자가 명시 요청 시에만, 또는 `deos lookup --archive {id}` 로 단일 ticket 만 조회.
 
 ## 중요 룰 요약
 - ticket files: scope 외 절대 수정 X

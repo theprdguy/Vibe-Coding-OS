@@ -444,7 +444,7 @@ def _validate_review_verdict_for_done(ticket: dict, override: bool) -> None:
     if not verdict:
         raise ValidationError(
             "done transition requires _review_verdict "
-            "('os3 record-review', agent-review gate, or override=True with reason/actor). "
+            "('deos record-review', agent-review gate, or override=True with reason/actor). "
             f"Ticket: {ticket.get('id')!r}"
         )
     # W2 fix: require dict shape — bare string verdicts are rejected.
@@ -1170,7 +1170,7 @@ def close_ticket_atomic(
         if ticket is None:
             raise ValidationError(f"ticket {ticket_id!r} not found in queue")
 
-        r = reason or f"os3 close --verdict {verdict} --by {by}"
+        r = reason or f"deos close --verdict {verdict} --by {by}"
 
         # Step 1: record verdict (in-memory only, no write yet)
         ticket["_review_verdict"] = _build_review_verdict_record(
@@ -1626,9 +1626,9 @@ def _move_plan_artifacts_to_rejected(
 
 
 def _load_gate_defaults(queue_path: Path) -> list[dict]:
-    """Load osn.yaml gate defaults for plan approval validation."""
+    """Load gate defaults from deos.yaml."""
     root = queue_path.parent.parent.parent
-    config_path = root / "osn.yaml"
+    config_path = root / "deos.yaml"
     if not config_path.exists():
         return []
     with open(config_path) as f:
@@ -1667,7 +1667,7 @@ def _validate_gate_names(tickets: list[dict], defaults: list[dict]) -> None:
         for gate in gates:
             if isinstance(gate, str) and gate not in lookup:
                 raise ValidationError(
-                    f"unknown gate name: '{gate}', see osn.yaml gates.defaults"
+                    f"unknown gate name: '{gate}', see deos.yaml gates.defaults"
                 )
             if not isinstance(gate, (dict, str)):
                 raise ValidationError("gates must contain only dicts or strings")

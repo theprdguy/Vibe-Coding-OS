@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vibe Coding OS — Architecture Deep Dive</title>
+<title>deos — Architecture Deep Dive</title>
 <style>
   :root{--bg:#0c0f15;--panel:#11151e;--card:#161b26;--card2:#1c2230;--line:#262d3b;--ink:#e7ecf3;--ink2:#a6b1c3;--ink3:#6f7b91;--acc:#6ea8fe;--acc2:#9d7bff;--ok:#34d399;--warn:#fbbf24;--block:#fb7185;--builder:#22d3ee;--reviewer:#fb7185;--designer:#c084fc;--security:#fb923c;--codex:#34d399;--claude1:#fbbf24;--mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
   *{box-sizing:border-box}html{scroll-behavior:smooth}
@@ -62,9 +62,9 @@
 <div class="shell">
 
 <aside>
-  <div class="brand">Vibe Coding OS</div>
+  <div class="brand">deos</div>
   <div class="ver">Architecture · Deep Dive</div>
-  <div class="langs">🌐 <strong>English</strong> · <a href="deep-dive.ko.html">한국어</a> · <a href="https://github.com/theprdguy/Vibe-Coding-OS">README</a></div>
+  <div class="langs">🌐 <strong>English</strong> · <a href="deep-dive.ko.html">한국어</a> · <a href="https://github.com/theprdguy/deos">README</a></div>
   <nav>
     <div class="grp">Overview</div>
     <a href="#tl">0 · Summary</a>
@@ -97,13 +97,13 @@
 </aside>
 
 <main>
-  <span class="kick">● Vibe Coding OS · Architecture</span>
+  <span class="kick">● deos · Architecture</span>
   <h1>How the OS <span class="g">actually works</span></h1>
-  <p class="lead">A deep dive into the layers, agents, and enforcement of Vibe Coding OS — the part the README summarizes. Written for people who want to understand <em>why</em> it's safe, not just <em>that</em> it is.</p>
+  <p class="lead">A deep dive into the layers, agents, and enforcement of deos — the part the README summarizes. Written for people who want to understand <em>why</em> it's safe, not just <em>that</em> it is.</p>
 
 <section id="tl"><div class="wrap">
   <h2><span class="n">0</span>One paragraph</h2>
-  <p class="lead2">Vibe Coding OS turns "telling an AI to write code" into an <strong>auditable state machine</strong>. All truth lives in files under <code>devos/</code>; work moves only as <strong>tickets</strong>; and who did what, and why, is recorded in per-ticket transition history and session logs.</p>
+  <p class="lead2">deos turns "telling an AI to write code" into an <strong>auditable state machine</strong>. All truth lives in files under <code>devos/</code>; work moves only as <strong>tickets</strong>; and who did what, and why, is recorded in per-ticket transition history and session logs.</p>
   <div class="card"><p style="margin:0;color:var(--ink)">You (the PM) describe intent → <span class="c1">CLAUDE1</span> decomposes it into <strong>tickets</strong> and interrogates the missing error/edge/security cases → you <strong>approve</strong> the plan → the ticket's owner (<span class="b">builder</span> in-session or <span class="cx">CODEX</span> subprocess) implements → baseline gates + a <strong>read-only</strong> review board check it → if risky or uncertain, a different vendor (<span class="cx">CODEX b'</span>) gives a second opinion → no BLOCKER means <code>done</code>; a BLOCKER means <code>blocked</code> + a decision queued for you.</p></div>
 </div></section>
 
@@ -158,13 +158,13 @@
                | intake checklist (force missing error/edge/security cases)
                | extract user journeys -> decompose into tickets
                v
-       plans/pending/  --you: os3 approve-->  tasks/QUEUE.yaml
+       plans/pending/  --you: deos approve-->  tasks/QUEUE.yaml
                                                    |
-                              os3 dispatch T-XXX   v
+                              deos dispatch T-XXX   v
           owner=BUILDER -> in-session sub-agent   owner=CODEX -> subprocess
                                  | implements
                                  v
-          os3 pr-check (secrets · contract · scope · session log · TDD)
+          deos pr-check (secrets · contract · scope · session log · TDD)
                                  v
           review board (reviewer/security/designer — read-only, by ticket type)
                                  v
@@ -236,34 +236,34 @@
   <h2><span class="n">9</span>The host-OS model</h2>
   <p>The engine, agents, and doctrine live <strong>once</strong> in a host repo. Each product is an independent git repo under <code>projects/</code>, carrying only its own code and task state.</p>
   <div class="diagram"><pre>~/dev-os/            host = engine · doctrine · shared .claude (one git repo)
-|-- server/  bin/os3  .claude/  devos/
+|-- server/  bin/deos  .claude/  devos/
 `-- projects/        (git-ignored by host — each is its own repo)
-    |-- product-a/   apps/ packages/ + own devos/tasks · PROJECT_STATE · .os3.yaml
+    |-- product-a/   apps/ packages/ + own devos/tasks · PROJECT_STATE · .deos.yaml
     `-- product-b/   ...</pre></div>
   <ul>
     <li><strong>Engine in one place</strong> — improve it once; every project gets it. No sync.</li>
     <li><strong>Projects independent</strong> — own repo, own state, deployed separately.</li>
-    <li><strong>One entry</strong> — <code>os3 open &lt;name&gt;</code> enters any project with host settings attached.</li>
+    <li><strong>One entry</strong> — <code>deos open &lt;name&gt;</code> enters any project with host settings attached.</li>
   </ul>
   <p class="muted">Using it as a single project works too — keep <code>devos/</code> as your state and ignore <code>projects/</code>. The host-OS model is how it scales to several products.</p>
 </div></section>
 
 <section id="feedback"><div class="wrap">
   <h2><span class="n">10</span>The OS-feedback loop</h2>
-  <p>The OS improves itself <strong>demand-pulled</strong>: friction hit during product work is captured with <code>os3 feedback "..."</code> into <code>devos/os-feedback/INBOX.md</code>, reviewed at session start, and converted to tickets during a periodic consolidation pass.</p>
+  <p>The OS improves itself <strong>demand-pulled</strong>: friction hit during product work is captured with <code>deos feedback "..."</code> into <code>devos/os-feedback/INBOX.md</code>, reviewed at session start, and converted to tickets during a periodic consolidation pass.</p>
   <div class="note"><span class="l">Why it's load-bearing</span><p>If OS improvement is supposed to come "from product friction," that friction has to be <em>captured</em> — otherwise it's mentioned once in chat and evaporates. Reactive fixing catches what you hit; a scheduled consolidation pass catches the latent debt you don't trip over.</p></div>
 </div></section>
 
 <section id="cli"><div class="wrap">
   <h2><span class="n">11</span>Commands</h2>
-  <pre><code>os3 open &lt;project&gt;        enter a project session (injects host settings)
-os3 status / queue       state · active tickets
-os3 approve / reject     approve or reject a pending plan
-os3 dispatch T-XXX       route a ticket to its owner
-os3 pr-check             baseline gates
-os3 archive              move done tickets to ARCHIVE.yaml
-os3 dashboard            local read-only kanban (127.0.0.1:8787)
-os3 feedback "..."       capture OS friction into the inbox</code></pre>
+  <pre><code>deos open &lt;project&gt;        enter a project session (injects host settings)
+deos status / queue       state · active tickets
+deos approve / reject     approve or reject a pending plan
+deos dispatch T-XXX       route a ticket to its owner
+deos pr-check             baseline gates
+deos archive              move done tickets to ARCHIVE.yaml
+deos dashboard            local read-only kanban (127.0.0.1:8787)
+deos feedback "..."       capture OS friction into the inbox</code></pre>
 </div></section>
 
 <section id="engine"><div class="wrap">
@@ -294,7 +294,7 @@ os3 feedback "..."       capture OS friction into the inbox</code></pre>
       <tr><td><code>.archive-index.lock</code></td><td>archive-index rebuild</td><td><strong>separate</strong> from the sentinel, so re-indexing doesn't block dispatch</td></tr>
     </tbody>
   </table>
-  <p class="muted">The split is intentional: an archive <em>move</em> must pause dispatch, but an index <em>rebuild</em> need not. That index is what lets <code>os3 lookup</code> find archived tickets — and it too is rebuilt atomically.</p>
+  <p class="muted">The split is intentional: an archive <em>move</em> must pause dispatch, but an index <em>rebuild</em> need not. That index is what lets <code>deos lookup</code> find archived tickets — and it too is rebuilt atomically.</p>
 </div></section>
 
 <section id="memory"><div class="wrap">
@@ -383,7 +383,7 @@ Blocking: yes | no
 <section id="metrics"><div class="wrap">
   <h2><span class="n">17</span>Measurement — cost · scorecard · paired-run</h2>
   <h3>Cost channels</h3>
-  <p><code>os3 cost-report</code> aggregates the dispatch logs into three channels and estimates spend: <strong>C1</strong> interactive (reviewer / security / designer), <strong>C2</strong> agent-SDK (cheaper batch review), <strong>C0</strong> external CODEX (implement + the b' second opinion). It warns when a channel passes ~80% of its credit — "how much review did I put on which model" turned into money.</p>
+  <p><code>deos cost-report</code> aggregates the dispatch logs into three channels and estimates spend: <strong>C1</strong> interactive (reviewer / security / designer), <strong>C2</strong> agent-SDK (cheaper batch review), <strong>C0</strong> external CODEX (implement + the b' second opinion). It warns when a channel passes ~80% of its credit — "how much review did I put on which model" turned into money.</p>
   <h3>4-axis scorecard (biweekly)</h3>
   <p>Right after a phase ships, and on a biweekly cadence, four axes are recorded to watch the balance, each with a ship/risk threshold:</p>
   <table>
@@ -405,11 +405,11 @@ Blocking: yes | no
   <h2><span class="n">18</span>File map</h2>
   <p>Where everything lives in the host repo (generic tree):</p>
   <div class="diagram"><pre>~/dev-os/                        # host = engine · doctrine · shared .claude (one git repo)
-├── bin/os3                      # single entry point
+├── bin/deos                     # single entry point
 ├── server/                      # the engine (Python)
 │   ├── dispatcher.py            # heart of routing + execution
 │   ├── ssot.py                  # QUEUE / state / SSOT read+write
-│   ├── cli.py                   # os3 subcommand registry
+│   ├── cli.py                   # deos subcommand registry
 │   ├── dashboard.py             # local read-only kanban (:8787)
 │   └── gemini_dispatcher.py     # visual-review channel
 ├── .claude/
@@ -430,7 +430,7 @@ Blocking: yes | no
 │   ├── logs/{date}-{agent}.md   # session logs (+ learnings, dispatch, gemini)
 │   └── docs/{ADR,API_CONTRACT,UI_CONTRACT,policy/,...}
 └── projects/                    # host git-ignores these — each is its own repo
-    ├── product-a/   apps/ packages/ + own QUEUE / PROJECT_STATE / .os3.yaml
+    ├── product-a/   apps/ packages/ + own QUEUE / PROJECT_STATE / .deos.yaml
     └── product-b/   ...</pre></div>
   <p class="muted">The host repo is one git repo; each product under <code>projects/</code> is independent and ignored by the host (§9). One engine, many products.</p>
 </div></section>
@@ -453,7 +453,7 @@ Blocking: yes | no
   </tbody></table>
 </div></section>
 
-<div class="foot"><div class="wrap">Vibe Coding OS — Architecture Deep Dive · <a href="deep-dive.ko.html">한국어</a> · <a href="https://github.com/theprdguy/Vibe-Coding-OS">README</a><br>The authoritative rules live in <code>devos/AI.md</code>, <code>ETHOS.md</code>, and <code>docs/policy/</code>; this page is an explainer.</div></div>
+<div class="foot"><div class="wrap">deos — Architecture Deep Dive · <a href="deep-dive.ko.html">한국어</a> · <a href="https://github.com/theprdguy/deos">README</a><br>The authoritative rules live in <code>devos/AI.md</code>, <code>ETHOS.md</code>, and <code>docs/policy/</code>; this page is an explainer.</div></div>
 </main>
 
 </div>

@@ -1,11 +1,11 @@
-# OS3 Policy Alignment Audit
+# deos Policy Alignment Audit
 
 Status: draft
 Date: 2026-05-15
 
 ## Purpose
 
-Audit current OS3 prompts, config, and selected dispatcher behavior against:
+Audit current deos prompts, config, and selected dispatcher behavior against:
 
 - `docs/OPERATING_DOCTRINE.md`
 - `docs/policy/ROLE_AUTHORITY_MATRIX.md`
@@ -81,7 +81,7 @@ The largest gaps are:
   gates/reviews, then marks `done` only after gates and required user outcome
   review pass.
 - Missing non-interactive user outcome decision now transitions to `needs_pm`
-  instead of `blocked`, with user-facing copy pointing to `bin/os3 user-review`.
+  instead of `blocked`, with user-facing copy pointing to `bin/deos user-review`.
 - Transition history records `code_ready -> done` for successful dispatcher
   closure.
 - `T-POLICY-ALIGN-05` has been partially implemented in `server/ssot.py` with
@@ -274,8 +274,8 @@ Implementation note:
 Current evidence:
 
 - `server/dispatcher.py:1719` tells the user to run `make user-review T=...`.
-- `START_HERE.md:89` states Makefile was removed and `bin/os3` replaces it.
-- `server/cli.py` exposes `bin/os3 user-review`.
+- `START_HERE.md:89` states Makefile was removed and `bin/deos` replaces it.
+- `server/cli.py` exposes `bin/deos user-review`.
 
 Policy conflict:
 
@@ -283,7 +283,7 @@ Policy conflict:
 
 Recommended change:
 
-- Change user-facing command output to `bin/os3 user-review T-XXX`.
+- Change user-facing command output to `bin/deos user-review T-XXX`.
 
 Owner:
 
@@ -408,7 +408,7 @@ Current evidence:
 
 - `server/gemini_dispatcher.py` already has a fail-open/fail-closed concept using
   `gui_review_required`.
-- `server/cli.py` exposes `bin/os3 gemini ...` subcommands.
+- `server/cli.py` exposes `bin/deos gemini ...` subcommands.
 - New policy docs define `requires_visual_review`, review rounds, `infra_failure`,
   same-issue escalation, and PM judgment.
 

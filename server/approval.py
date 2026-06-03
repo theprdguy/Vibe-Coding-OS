@@ -1,4 +1,4 @@
-"""Approval workflow state machine for OS3 server."""
+"""Approval workflow state machine for deos server."""
 from __future__ import annotations
 
 import uuid

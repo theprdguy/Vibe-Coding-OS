@@ -1,40 +1,45 @@
-# Session Logs — Format Specification
+# Session Log Format (v3.1)
 
-## Purpose
-Session logs enable cross-agent visibility. Each builder writes a log at session end.
-Claude 1 reads these at session start to understand builder context.
+Every agent writes a session log before ending.
 
-## File Naming
-`{YYYY-MM-DD}-{agent}-{ticket-ids}.md`
+## Naming Convention
+```
+devos/logs/{YYYY-MM-DD}-{agent}-{ticket-ids}.md
+```
+
+Agents: `claude1`, `claude2`, `codex`
 
 Examples:
-- `2026-03-15-codex-T-001.md`
-- `2026-03-15-claude2-T-002-T-003.md`
-- `2026-03-15-claude1.md`
+- `devos/logs/2026-03-19-claude1.md`
+- `devos/logs/2026-03-19-claude2-T001-T002.md`
+- `devos/logs/2026-03-19-codex-T003.md`
 
-## Required Sections
+## Required Format (max 50 lines)
 
-```
-# Session Log: {AGENT} — {date}
-Tickets: {ticket IDs worked on}
+```markdown
+# Session Log: {AGENT} — {YYYY-MM-DD}
+Tickets: {ticket IDs, or "planning"}
 
 ## Summary
 - What was accomplished (2-3 bullets)
 
 ## Decisions Made
-- Implementation choices and reasoning
+- Key implementation or planning choices and reasoning
+
+## Questions Raised
+- Questions added to questions/QUEUE.md (or "none")
 
 ## Files Modified
-- List of files changed
+- List of files changed (or "devos/ only" for Claude 1)
 
 ## Handoff
-Done: {ticket ID} — {what} — files: {list}
-Next: {next ticket or "waiting"}
+Done: {ticket ID or "planning"} — {what} — files: {list}
+Next: {next ticket or "waiting for dispatch" or next planning step}
 Block: {Q-xxx or "none"}
-Log: devos/logs/{filename} written
+Log: devos/logs/{date}-{agent}-{tickets}.md written
 ```
 
-## Guidelines
-- **Max 50 lines** per log (token-efficient)
-- Focus on decisions and context, not code details
-- Always include the Handoff section
+## Why Session Logs
+The main mechanism for cross-agent context sharing.
+Claude 1 reads all builder logs at session start to understand what was done.
+Keep them concise — Claude 1 reads many logs at once.

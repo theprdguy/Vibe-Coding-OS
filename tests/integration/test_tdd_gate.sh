@@ -54,11 +54,12 @@ create_repo() {
   local repo_dir="$TMP_DIR/$name"
 
   mkdir -p "$repo_dir/scripts" "$repo_dir/apps/api/src" "$repo_dir/tests" "$repo_dir/devos/logs" "$repo_dir/devos/tasks"
-  cp "$ROOT_DIR/Makefile" "$repo_dir/Makefile"
   cp "$ROOT_DIR/scripts/check-contract-sync.sh" "$repo_dir/scripts/check-contract-sync.sh"
   cp "$ROOT_DIR/scripts/check-ticket-scope.sh" "$repo_dir/scripts/check-ticket-scope.sh"
   cp "$ROOT_DIR/scripts/check-session-log.sh" "$repo_dir/scripts/check-session-log.sh"
   cp "$ROOT_DIR/scripts/check-tdd-first-commit.sh" "$repo_dir/scripts/check-tdd-first-commit.sh" 2>/dev/null || true
+  # Minimal deos.yaml so bin/deos pr-check stays in the temp repo dir (no auto-chdir to ROOT_DIR).
+  printf 'project: test\n' > "$repo_dir/deos.yaml"
 
   cat > "$repo_dir/apps/api/src/foo.py" <<'EOF'
 print("baseline")
@@ -77,8 +78,11 @@ tickets:
   - tests/integration/test_tdd_gate.sh
 EOF
 
-  cat > "$repo_dir/devos/logs/2026-04-19-codex.md" <<'EOF'
-# Session Log: CODEX — 2026-04-19
+  # Use today's date so check-session-log.sh (which uses `date '+%Y-%m-%d'`) finds the log.
+  local today
+  today="$(date '+%Y-%m-%d')"
+  cat > "$repo_dir/devos/logs/${today}-codex.md" <<'EOF'
+# Session Log: CODEX
 EOF
 
   (
@@ -130,7 +134,8 @@ run_pr_check() {
 
   (
     cd "$repo_dir"
-    PATH="$repo_dir/bin:$PATH" AGENT_NAME=codex make pr-check
+    PATH="$repo_dir/bin:$PATH" AGENT_NAME=codex \
+      PYTHONPATH="$ROOT_DIR" python3 "$ROOT_DIR/bin/deos" pr-check
   ) >"$output_file" 2>&1 || exit_code=$?
 
   PR_CHECK_OUTPUT="$(cat "$output_file")"
@@ -190,9 +195,11 @@ test_self_evident_ticket_records_waiver() {
 
   run_tdd_check "$repo_dir"
 
+  local today
+  today="$(date '+%Y-%m-%d')"
   assert_exit_code "$TDD_EXIT_CODE" 0
   assert_contains "$TDD_OUTPUT" "self-evident"
-  assert_contains "$(cat "$repo_dir/devos/logs/2026-04-19-codex.md")" "self-evident TDD waiver for T-WAIVE"
+  assert_contains "$(cat "$repo_dir/devos/logs/${today}-codex.md")" "self-evident TDD waiver for T-WAIVE"
 }
 
 test_missing_ticket_commit_is_skipped() {

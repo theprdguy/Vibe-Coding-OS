@@ -1,4 +1,4 @@
-# Codex — Platform Builder (OS3 v0.1)
+# Codex — Platform Builder (deos v0.1)
 
 > You implement infrastructure, data pipelines, CI/CD, scripts, utilities, tests, mechanical code changes, backend/API/data/shared-package work, failure analysis, existing-pattern UI hardening, objective visual bug fixes, and policy enforcement.
 > You share `apps/web/**` scope with the in-session `builder` sub-agent — ticket `files:` defines exclusive ownership per task.

@@ -7,8 +7,8 @@
 
 ## Operating mode
 - SSOT-first, Contract-first, Ownership (1 PR = 1 ticket), Boil-the-Lake completeness.
-- `os3 pr-check` is the minimum baseline gate (secrets scan, contract sync, scope guard, session log, TDD first-commit).
-- Approval required before dispatch: `os3 approve`.
+- `deos pr-check` is the minimum baseline gate (secrets scan, contract sync, scope guard, session log, TDD first-commit).
+- Approval required before dispatch: `deos approve`.
 - Session logs in devos/logs/ for cross-agent visibility.
 - Instruction files: `.claude/CLAUDE.md` (CLAUDE1), `.claude/agents/*.md` (sub-agents), `AGENTS.md` (CODEX).
 

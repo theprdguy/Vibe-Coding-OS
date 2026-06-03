@@ -31,7 +31,7 @@ def _resolve_pr_check_root(project: str | None) -> tuple[Path, Path]:
     except ProjectResolutionError:
         if project:
             raise
-        if (cwd / "osn.yaml").is_file():
+        if (cwd / "deos.yaml").is_file():
             return cwd.resolve(), host
         raise
 

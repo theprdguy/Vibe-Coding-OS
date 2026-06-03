@@ -1,4 +1,4 @@
-# OS3 Waiver Format
+# deos Waiver Format
 
 Status: draft
 
@@ -27,7 +27,7 @@ evidence:
 created_at: YYYY-MM-DDTHH:MM:SSZ
 ```
 
-Implementation note: until OS3 has a separate waiver registry, Production policy
+Implementation note: until deos has a separate waiver registry, Production policy
 exceptions must include the waiver record inline in the ticket `waivers:` list.
 String waiver IDs are accepted as references, but they do not satisfy hard-policy
 exception enforcement by themselves.

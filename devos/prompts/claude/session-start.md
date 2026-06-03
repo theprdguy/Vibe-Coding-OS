@@ -24,7 +24,7 @@ Efficiency rule: if you catch yourself Reading the same file with a different `o
 - Max 5 per triage
 
 ## Step 2.5: Review OS-feedback INBOX (demand-pulled OS improvement)
-- Read `devos/os-feedback/INBOX.md`. This is where OS-level friction hit during *any* project session is captured (via `os3 feedback "..."` or direct append). It is the load-bearing pipe of the "improve the OS from product friction" operating model — if it is empty while product work is happening, the pipe is cold (friction is evaporating into chat); say so.
+- Read `devos/os-feedback/INBOX.md`. This is where OS-level friction hit during *any* project session is captured (via `deos feedback "..."` or direct append). It is the load-bearing pipe of the "improve the OS from product friction" operating model — if it is empty while product work is happening, the pipe is cold (friction is evaporating into chat); say so.
 - Count `[status: open]` entries. Surface 1–2 high-severity items relevant to today; do NOT triage the whole backlog every session.
 - **Consolidation trigger**: when open entries ≥ 8 **OR** at the start of a new quarter (whichever first), propose a consolidation pass — convert ripe INBOX items into tickets/plan AND sweep the standing drift list (draft-policy graduation, naming sediment, empty ADR/measurement). This is the *only* scheduled OS-maintenance ritual; reactive friction-fixing does not catch latent debt on its own.
 - This step is cheap by design (one read + a glance). It is not the heavyweight measurement machinery — its consumer is every session.
@@ -53,8 +53,8 @@ Skip TaskCreate only for trivial single-step sessions (one ticket review, one tr
 - [ticket IDs + owners]
 
 ── Next Actions ──
-- BUILDER: [what, which tickets] → bin/os3 dispatch T-XXX
-- CODEX:   [what, which tickets] → bin/os3 dispatch T-XXX
+- BUILDER: [what, which tickets] → bin/deos dispatch T-XXX
+- CODEX:   [what, which tickets] → bin/deos dispatch T-XXX
 ```
 
 ## CRITICAL REMINDERS

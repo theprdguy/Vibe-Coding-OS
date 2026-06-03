@@ -86,7 +86,7 @@ def _next_step(active_tickets: list[dict[str, Any]], artifacts_ok: bool, pilot_d
 
 
 def build_pilot_status(project_root: Path, queue: dict[str, Any]) -> dict[str, Any]:
-    """Build a read-only OS3 pilot readiness report."""
+    """Build a read-only deos pilot readiness report."""
     project_root = Path(project_root)
     pilot_doc = _pilot_doc_status(project_root)
     artifacts = _policy_artifacts(project_root)
@@ -111,7 +111,7 @@ def build_pilot_status(project_root: Path, queue: dict[str, Any]) -> dict[str, A
 
 def format_pilot_status(report: dict[str, Any]) -> str:
     """Render a PM-readable pilot status report."""
-    lines = ["OS3 E2E pilot status"]
+    lines = ["deos E2E pilot status"]
     pilot_doc = report["pilot_doc"]
     doc_state = "OK" if pilot_doc.get("exists") else "MISSING"
     lines.append(f"Pilot doc: {doc_state} {pilot_doc['path']} (status: {pilot_doc['status']})")
@@ -120,7 +120,7 @@ def format_pilot_status(report: dict[str, Any]) -> str:
     for item in report["policy_artifacts"]:
         lines.append(f"  {item['state']} {item['path']}")
 
-    lines.append("Active OS3 pilot tickets:")
+    lines.append("Active deos pilot tickets:")
     active = report["active_pilot_tickets"]
     if active:
         for ticket in active:
@@ -143,7 +143,7 @@ def pilot_status_exit_code(report: dict[str, Any], *, strict: bool) -> int:
 
 
 def handle_pilot_status(args):
-    """Print OS3 E2E pilot readiness and evidence state."""
+    """Print deos E2E pilot readiness and evidence state."""
     paths = _load_paths(args)
     from server.ssot import read_queue_with_archive
 
@@ -209,7 +209,7 @@ def handle_cost_report(args):
     cost_c2 = channels.get("agent_review_haiku", 0) * 0.017 + channels.get("review_claude_p", 0) * 0.07
     cost_c0 = channels.get("codex_subprocess", 0) * 0.05 + channels.get("codex_cross_model", 0) * 0.03
 
-    print(f"=== OS3 cost report ({cutoff_days}d) ===")
+    print(f"=== deos cost report ({cutoff_days}d) ===")
     print(f"Total dispatches: {total}")
     print("Classification:")
     for cls, n in classifications.most_common():

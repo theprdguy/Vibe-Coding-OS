@@ -1,10 +1,10 @@
-"""OS3 server — legacy shim entrypoint.
+"""deos server — legacy shim entrypoint.
 
-DEPRECATED: Use `bin/os3` (server.cli) instead.
+DEPRECATED: Use `bin/deos` (server.cli) instead.
 python3 -m server is a legacy host-only shim. All commands delegate to server.cli.main.
 
-Canonical CLI: bin/os3 <command> [--project <name>] [args...]
-Full command list: bin/os3 --help
+Canonical CLI: bin/deos <command> [--project <name>] [args...]
+Full command list: bin/deos --help
 """
 from __future__ import annotations
 
@@ -27,12 +27,12 @@ logger = logging.getLogger("os3")
 
 _LEGACY_NOTE = (
     "NOTE: `python3 -m server` is a legacy shim. "
-    "Use `bin/os3` (or `os3`) for the full OS3 CLI."
+    "Use `bin/deos` (or `deos`) for the full deos CLI."
 )
 
 
 def main() -> None:
-    """Legacy shim: delegates all commands to server.cli.main (bin/os3 path)."""
+    """Legacy shim: delegates all commands to server.cli.main (bin/deos path)."""
     from server.cli import main as _cli_main
 
     args = sys.argv[1:]
@@ -40,7 +40,7 @@ def main() -> None:
     if not args:
         # No command — show deprecation note + usage from cli help
         print(_LEGACY_NOTE)
-        print("Run `bin/os3 --help` for the full command list.")
+        print("Run `bin/deos --help` for the full command list.")
         sys.exit(0)
 
     cmd = args[0]
@@ -62,7 +62,7 @@ def main() -> None:
     # Unknown command — show legacy guard message and exit nonzero
     print(f"Unknown command: {cmd}", file=sys.stderr)
     print(_LEGACY_NOTE, file=sys.stderr)
-    print("Run `bin/os3 --help` for the full command list.", file=sys.stderr)
+    print("Run `bin/deos --help` for the full command list.", file=sys.stderr)
     sys.exit(1)
 
 

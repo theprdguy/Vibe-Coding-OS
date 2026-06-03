@@ -147,12 +147,12 @@ OS 변경 후 본 워크스페이스에서 다음 시나리오 통과:
        - `RES` (Residual): cluster 잔여, 후속 hardening
        - `META` (meta-infrastructure): transition reason, lock, sister channel 등
        - `HOTFIX`: 즉시 fix
-   - **단순 sequence**: `T-{project}-{seq}` (예: `T-MYPROJECT-001`, `T-MYPROJECT-041`)
+   - **단순 sequence**: `T-{project}-{seq}` (예: `T-DECK-001`, `T-BASKET-3041`)
      - 작은 프로젝트 또는 sequential 모델 — deck 본사 호환
    - **프로젝트 prefix mandatory**: sister 프로젝트 ID 충돌 차단 (T-001 같은 ID 양쪽 존재 위험)
    - **기존 ticket 재명명 X**: backward-compat — 신규 ticket 부터 컨벤션 적용
    - **example**:
-     - 좋은 예: `T-MYPROJECT-V38-01`, `T-MYPROJECT-CB-02`, `T-MYPROJECT-041`
+     - 좋은 예: `T-OS2-V38-01`, `T-DECK-CB-02`, `T-BASKET-3041`
      - 나쁜 예: `T-001` (project prefix 누락), `T-OS2-fix` (sequence 누락)
 3. **우선순위 등급**: HIGHEST / HIGH / MEDIUM / LOW-MEDIUM / LOW
 4. **워크플로 영향**: 누계 발생 N회, dispatch N건 중 N건 영향 등 정량 명시

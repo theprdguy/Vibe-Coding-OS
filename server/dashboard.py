@@ -1,4 +1,4 @@
-"""Local read-only HTTP dashboard for OS3 tickets."""
+"""Local read-only HTTP dashboard for deos tickets."""
 from __future__ import annotations
 
 import json
@@ -36,7 +36,7 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
 
     host_root = Path(".")
     static_dir = STATIC_DIR
-    server_version = "OS3Dashboard/0.1"
+    server_version = "deosBoard/0.1"
 
     def do_GET(self) -> None:
         path = unquote(urlsplit(self.path).path)
@@ -169,13 +169,13 @@ def serve(host_root: Path, *, port: int = DEFAULT_PORT, open_browser: bool = Tru
 
     address, bound_port = httpd.server_address
     url = f"http://{address}:{bound_port}/"
-    print(f"OS3 dashboard serving {url}")
+    print(f"deos dashboard serving {url}")
     if open_browser:
         webbrowser.open(url)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("\nOS3 dashboard stopped.")
+        print("\ndeos dashboard stopped.")
     finally:
         httpd.server_close()
     return 0

@@ -8,7 +8,7 @@ Use this format when handing work to another model/session/person.
 4. **Log**: path to your session log file
 
 ## Example
-- Done: T-020 API skeleton + docs/API_CONTRACT.md, `bin/os3 pr-check` green
+- Done: T-020 API skeleton + docs/API_CONTRACT.md, `bin/deos pr-check` green
 - Next: T-021 add validation + tests in apps/api/src/auth/
 - Block: Q-004 [open] refresh-token TTL (default: 14d)
 - Log: devos/logs/2026-04-24-codex-T020.md

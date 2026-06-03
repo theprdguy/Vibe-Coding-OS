@@ -190,7 +190,7 @@ designer_review:
 ## 한계 명시
 
 - **시각적 검증 X** — 실제 UI 스크린샷이 아직 없는 단계 (decompose 시점) 라 "감각적 위화감" 같은 건 못 잡음. PR review 단계에서 추가 검토 필요 (V39-03 user-outcome-review 게이트와 결합).
-  → PR review 단계에서 **Gemini visual reviewer** (`bin/os3 gemini dispatch <ticket-id>` Plan A 자동 / `bin/os3 gemini next` Plan B 수동) 가 보강. 트리거: ticket `gui_review: true` 또는 diff 가 `apps/web/**` 포함 시 자동.
+  → PR review 단계에서 **Gemini visual reviewer** (`bin/deos gemini dispatch <ticket-id>` Plan A 자동 / `bin/deos gemini next` Plan B 수동) 가 보강. 트리거: ticket `gui_review: true` 또는 diff 가 `apps/web/**` 포함 시 자동.
 - **design system 인지** — 기존 design token / 컴포넌트 목록을 prompt 에 명시적으로 주입하지 않으면 일반론적 체크에 그침. 프로젝트에 design system 문서가 있으면 ticket context 에 링크 권장.
 - **사용자가 "필요 없음"이라 답한 항목은 명시적 N/A 사유로 기록** — 누락이 아니라 의도적 제외.
 

@@ -1,8 +1,8 @@
-# OS3 E2E Pilot
+# deos E2E Pilot
 
 Status: ready-for-pilot
 
-Purpose: verify that OS3 behaves like a product-building operating system, not
+Purpose: verify that deos behaves like a product-building operating system, not
 only a prompt/config collection.
 
 This pilot is intentionally small. It should exercise the full operating loop
@@ -57,7 +57,7 @@ Recommended shape:
 
 ## Notes
 
-- `bin/os3` is the primary CLI entry point.
+- `bin/deos` is the primary CLI entry point.
 - `bin/osn` and `osn.yaml` remain compatibility aliases for existing automation.
 - `devos/**` wording can be updated later by a protected-area owner if desired;
   this pilot does not require it.

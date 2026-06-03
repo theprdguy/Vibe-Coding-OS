@@ -1,25 +1,6 @@
-# Question Queue (A-Mode)
+# Questions Queue
 
-## Rules
-- If blocked or ambiguous, add a question here (do not stall everything).
-- Always include Options + Recommendation + Default.
-- If non-blocking: proceed with Default.
-- If blocking: pause only dependent tickets; continue others.
+> Open questions for the orchestrator.
+> Format: Q-id | status | question | options | recommendation | default.
 
----
-
-## Template
-```
-## Q-XXX [open] (Blocking|Non-blocking)
-**Question:** ...
-**Options:** A) ... B) ... C) ... D) ...
-**Recommendation:** (one line)
-**Default:** (A/B/C/D)
-**Needed-by:** T-...
-**Impact:** contracts/files
-**Notes:** (optional)
-```
-
----
-
-(No open questions)
+<!-- No entries yet. -->

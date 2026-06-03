@@ -1,4 +1,4 @@
-# OS3 Gemini Visual Review Schema
+# deos Gemini Visual Review Schema
 
 Status: draft
 

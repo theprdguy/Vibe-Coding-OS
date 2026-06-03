@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.os3.server</string>
+    <string>com.deos.server</string>
 
     <key>ProgramArguments</key>
     <array>
@@ -14,7 +14,7 @@
 
     <!-- 프로젝트 루트로 변경 필요 -->
     <key>WorkingDirectory</key>
-    <string>/YOUR/PATH/TO/OS3</string>
+    <string>/YOUR/PATH/TO/dev-os</string>
 
     <!-- 부팅 시 자동 시작 -->
     <key>RunAtLoad</key>
@@ -25,8 +25,8 @@
     <true/>
 
     <key>StandardOutPath</key>
-    <string>/tmp/os3-server.log</string>
+    <string>/tmp/deos-server.log</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/os3-server-error.log</string>
+    <string>/tmp/deos-server-error.log</string>
 </dict>
 </plist>

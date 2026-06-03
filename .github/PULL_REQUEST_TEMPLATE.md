@@ -22,7 +22,7 @@ Ticket: <!-- T-XXX -->
 
 <!-- All gates must pass before merge. Check what ran. -->
 
-- [ ] `os3 pr-check` passed (secrets · scope · session log · TDD order)
+- [ ] `deos pr-check` passed (secrets · scope · session log · TDD order)
 - [ ] Tests pass (`python -m pytest`)
 - [ ] Reviewer sub-agent verdict: **PASS** (no BLOCKERs)
 - [ ] Security gate: N/A / passed (auto-triggered for auth/payment/permissions/external input)
